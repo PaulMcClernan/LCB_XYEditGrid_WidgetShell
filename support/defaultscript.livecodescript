@@ -12,7 +12,9 @@ on gridMouseUp gridX,gridY
    put cr& "END " & gridX,gridY after msg
    -- if item 2 of the StartingLinePoint of me = gridY then -- constrain to only draw horizontal lines
    set the gridLines of me to the StartingLinePoint of me &":"& gridX &","& gridY 
+   put the gridLines of me into tLinesList
+   sort lines of tLinesList ascending numeric by item 1 of each 
+   put tLinesList
    -- end if
 end gridMouseUp
-
 

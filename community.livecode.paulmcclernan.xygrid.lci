@@ -1,0 +1,39 @@
+import module community.livecode.paulmcclernan.xygrid
+  use com.livecode.canvas
+  use com.livecode.library.widgetutils
+  use com.livecode.widget
+  use com.livecode.array
+  use com.livecode.list
+  use com.livecode.typeconvert
+  use com.livecode.arithmetic
+  use com.livecode.binary
+  use com.livecode.string
+  use com.livecode.logic
+  use com.livecode.type
+  use com.livecode.engine
+  handler getCircleColor() returns String
+  handler setBorderColor(in pColor as String) returns nothing
+  handler getBorderColor() returns String
+  handler getGridLines() returns optional any
+  handler setBorderWidth(in pBorderWidth as Number) returns nothing
+  handler setMaxXValue(in pBorderWidth as Number) returns nothing
+  handler getMaxXValue() returns Number
+  handler setMaxYValue(in pBorderWidth as Number) returns nothing
+  handler getMaxYValue() returns Number
+  handler setCircleSize(in pBorderWidth as Number) returns nothing
+  handler OnMouseUp() returns optional any
+  handler OnMouseDown() returns optional any
+  handler OnMouseMove() returns optional any
+  handler OnMouseCancel() returns optional any
+  handler OnMouseScroll(in deltaX as optional any, in deltaY as optional any) returns optional any
+  handler OnSave(out rProperties as Array) returns optional any
+  handler OnLoad(in pProperties as Array) returns optional any
+  handler OnStopEditing() returns optional any
+  handler OnCreate() returns optional any
+  handler OnGeometryChanged() returns optional any
+  handler OnPaint() returns optional any
+  handler OnOpen() returns optional any
+  handler setLocalGridCoordsFromLoc(in pPosition as Point, in pReverseX as Boolean, in pReverseY as Boolean) returns nothing
+  handler getRectListSplitHorz(in pRect as optional any, in pDiv as Number, in pReverseOrder as Boolean) returns List
+  handler getRectListSplitVert(in pRect as optional any, in pDiv as Number, in pReverseOrder as Boolean) returns List
+end module

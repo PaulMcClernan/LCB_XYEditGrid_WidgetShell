@@ -4,3 +4,6 @@
 ._Preview.png
 *.DS_Store
 support/._defaultscript.livecodescript
+._api.lcdoc
+*.lcm
+manifest.xml

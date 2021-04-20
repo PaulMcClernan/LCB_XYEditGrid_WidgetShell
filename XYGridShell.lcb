@@ -110,7 +110,6 @@ public handler getBorderColor() returns String
    return colorToString(mStrokesColor, true)
 end handler
 
-
 property gridLines get getGridLines set setGridLines
 -- metadata gridLines.user_visible is "false"
 metadata gridLines.user_visible is "true"
@@ -127,6 +126,8 @@ private handler setGridLines(pGridLines as String) returns nothing
    variable tGridlineToPoint as Point
    put point [0,0] into tGridlineToPoint
    variable tGridLineArray as Array
+   variable tNumA as Number
+   variable tNumB as Number
 
    variable tNumStr as String
    variable tGridLinesList as List
@@ -142,9 +143,9 @@ private handler setGridLines(pGridLines as String) returns nothing
 
       repeat for each element tGridLine in tGridLinesList
          split tGridLine by ":" into tLineListPoints
-         if (tLineListPoints[1]) is (tLineListPoints[2]) then
-            log [ tLineListPoints[1] , tLineListPoints[2] ]
-         end if
+         -- if (tLineListPoints[1]) is (tLineListPoints[2]) then -- Start and Stop loc are the same
+         --   log ["SAME START & STOP", tLineListPoints[1] , tLineListPoints[2] ]
+         -- end if
          if the number of elements in tLineListPoints is 2 then
             split tLineListPoints[1] by "," into tPointStrList
             set the x of tGridlineFromPoint to (tPointStrList[1] parsed as number)
@@ -165,11 +166,20 @@ private handler setGridLines(pGridLines as String) returns nothing
             set the y of tGridlineToPoint to (tPointStrList[2] parsed as number)
             put tGridlineToPoint into tGridLineArray["Stop"]
          end if
+         if the x of tGridlineFromPoint > the x of tGridlineToPoint then -- End is to the left before the begining
+            -- swap start & stop x ---
+            put the x of tGridlineFromPoint into tNumA
+            put the x of tGridlineToPoint into tNumB
+            set the x of tGridlineFromPoint to tNumB
+            set the x of tGridlineToPoint to tNumA
+            put tGridlineFromPoint into tGridLineArray["Start"]
+            put tGridlineToPoint into tGridLineArray["Stop"]
+         end if
          push tGridLineArray onto mGridLines
       end repeat
       -- log [mGridLines]
       repeat for each element tGridLine in mGridLines
-         log tGridLine
+         -- log tGridLine
       end repeat
    else
       put the empty list into mGridLines
@@ -457,8 +467,10 @@ public handler OnCreate()
    put 24 into mMaxYValue
    put getRectListSplitHorz(my bounds,mMaxXValue+1,false) into mHorizRectList -- +1 is for the Zero position in signed version
    put getRectListSplitVert(my bounds,mMaxYValue+1,false) into mVertRectList -- +1 is for the Zero position in signed version
-   put (the width of (element 1 of mHorizRectList)/8) into mCircleSize
+   --log mHorizRectList
+   --log mVertRectList
 
+   put (the width of (element 1 of mHorizRectList)/8) into mCircleSize
    put 0. into mBorderWidth
    put the color of my foreground paint into mCircleColor
    put the color of my border paint into mStrokesColor
@@ -739,7 +751,7 @@ public handler getRectListSplitHorz(in pRect, in pDiv as Integer, in pReverseOrd
    if pReverseOrder is true then
       repeat with tCounter from pDiv down to 1
          put rectangle [tLeft+(tSplitWidth*tCounter),tTop,(tSplitWidth*tCounter)+tSplitWidth,tHeight] into tRect
-         push tRect onto tRectList
+         push tRect onto front of tRectList
       end repeat
    else
       repeat with tCounter from 1 up to pDiv
@@ -770,9 +782,9 @@ public handler getRectListSplitVert(in pRect, in pDiv as Integer,in pReverseOrde
    put rectangle [tLeft,tTop,tWidth,tSplitHeight] into tRect
    push tRect onto tRectList
    if pReverseOrder is true then
-      repeat with tCounter from  pDiv down to 1
+      repeat with tCounter from 1 up to pDiv
          put rectangle [tLeft,tTop+(tSplitHeight*tCounter),tWidth,(tSplitHeight*tCounter)+tSplitHeight] into tRect
-         push tRect onto tRectList
+         push tRect onto front of tRectList
       end repeat
    else
       repeat with tCounter from 1 up to pDiv
