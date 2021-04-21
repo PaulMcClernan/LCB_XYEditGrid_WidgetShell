@@ -457,30 +457,28 @@ public handler OnStopEditing()
    redraw all
 end handler
 
+
+
 public handler OnCreate()
    variable tRect
+   variable tList as List
+   variable tNum as Number
    put true into mSelectionMode
    put [0,0] into mLocalLoc
    put [0,0] into mSelectionStartLocalLoc
    put [0,0] into mSelectionEndLocalLoc
    put 32 into mMaxXValue
    put 24 into mMaxYValue
-   put getRectListSplitHorz(my bounds,mMaxXValue+1,false) into mHorizRectList -- +1 is for the Zero position in signed version
-   put getRectListSplitVert(my bounds,mMaxYValue+1,false) into mVertRectList -- +1 is for the Zero position in signed version
-   --log mHorizRectList
-   --log mVertRectList
 
-   put (the width of (element 1 of mHorizRectList)/8) into mCircleSize
-   put 0. into mBorderWidth
+   buildGridRectLists()
+
+   put 0.1 into mBorderWidth
    put the color of my foreground paint into mCircleColor
    put the color of my border paint into mStrokesColor
 end handler
 
 public handler OnGeometryChanged()
-   -- put [mMaxXValue/2,mMaxYValue/2] into mLocalLoc -- RESETS MARKER TO CENTER
-   put getRectListSplitHorz(my bounds,mMaxXValue+1,false) into mHorizRectList -- +1 is for the Zero position in signed version
-   put getRectListSplitVert(my bounds,mMaxYValue+1,false) into mVertRectList -- +1 is for the Zero position in signed version
-   put (the width of (element 1 of mHorizRectList)/8) into mCircleSize
+   buildGridRectLists()
    redraw all
 end handler
 --------------------------------------------------------------------------------------------------------------
@@ -523,7 +521,6 @@ public handler OnPaint()
    -- stroke tPath on this canvas
    -- put line path from point [0,my height / 2] to point [my width,my height/2] into tPath
    -- stroke tPath on this canvas
-
    ------------------------------------------------------------------ Quarter Horizontal Markers:
     set the stroke width of this canvas to mBorderWidth * 16
     set the paint of this canvas to solid paint with mStrokesColor
@@ -668,7 +665,6 @@ public handler OnOpen()
    redraw all
 end handler
 
-
 variable mLocalLoc as optional List
 public handler setLocalGridCoordsFromLoc(in pPosition as Point, in pReverseX as Boolean,in pReverseY as Boolean) returns nothing
    variable tRectList as List
@@ -705,10 +701,11 @@ public handler setLocalGridCoordsFromLoc(in pPosition as Point, in pReverseX as 
    end if
 
    if pReverseY then
-      repeat with tRectNum from mMaxYValue + 1 down to 1
+      repeat with tRectNum from mMaxYValue+1 down to 1
          put mVertRectList[tRectNum] into tRect
          if pPosition is within tRect then
-            put tRectNum -1 into tVert
+            put mMaxYValue+1 - tRectNum into tVert
+            -- put tRectNum into tVert
             exit repeat
          end if
       end repeat
@@ -749,9 +746,9 @@ public handler getRectListSplitHorz(in pRect, in pDiv as Integer, in pReverseOrd
    put rectangle [tLeft,tTop,tSplitWidth,tHeight] into tRect
    push tRect onto tRectList
    if pReverseOrder is true then
-      repeat with tCounter from pDiv down to 1
+      repeat with tCounter from 1 up to pDiv
          put rectangle [tLeft+(tSplitWidth*tCounter),tTop,(tSplitWidth*tCounter)+tSplitWidth,tHeight] into tRect
-         push tRect onto front of tRectList
+         push tRect onto back of tRectList
       end repeat
    else
       repeat with tCounter from 1 up to pDiv
@@ -769,6 +766,9 @@ public handler getRectListSplitVert(in pRect, in pDiv as Integer,in pReverseOrde
    variable tTop as Integer
    variable tRect
    variable tRectList as List
+   variable tRevRecList as List
+   variable tNum as Number
+
    variable tSplitHeight as Integer
    variable tCounter as Integer
    if pDiv < 1 then
@@ -779,22 +779,40 @@ public handler getRectListSplitVert(in pRect, in pDiv as Integer,in pReverseOrde
    put the bottom of pRect into tHeight
    put the right of pRect into tWidth
    put tHeight/pDiv into tSplitHeight
-   put rectangle [tLeft,tTop,tWidth,tSplitHeight] into tRect
-   push tRect onto tRectList
+
    if pReverseOrder is true then
+      put rectangle [tLeft,tTop,tWidth,tSplitHeight] into tRect -- 0 rect at top
+      push tRect onto tRectList -- push 0 rect
       repeat with tCounter from 1 up to pDiv
-         put rectangle [tLeft,tTop+(tSplitHeight*tCounter),tWidth,(tSplitHeight*tCounter)+tSplitHeight] into tRect
-         push tRect onto front of tRectList
-      end repeat
-   else
-      repeat with tCounter from 1 up to pDiv
-         put rectangle [tLeft,tTop+(tSplitHeight*tCounter),tWidth,(tSplitHeight*tCounter)+tSplitHeight] into tRect
+         put rectangle [tLeft,tTop+(tSplitHeight * tCounter),tWidth,(tCounter * tSplitHeight)+tSplitHeight] into tRect
          push tRect onto tRectList
       end repeat
+      repeat with tNum from 1 up to (the number of elements in tRectList)
+      -- repeat with tNum from  (the number of elements in tList) down to 1
+          --log [ tNum,mVertRectList[tNum]]
+         -- push tRectList[tNum] onto back of tRevRecList
+         push tRectList[tNum] onto front of tRevRecList
+      end repeat
+      return tRevRecList
+   else
+      put rectangle [tLeft,tTop,tWidth,tSplitHeight] into tRect -- 0 rect at top
+      push tRect onto tRectList -- push 0 rect
+      repeat with tCounter from 1 up to pDiv
+         put rectangle [tLeft,tTop+(tSplitHeight * tCounter),tWidth,(tCounter * tSplitHeight)+tSplitHeight] into tRect
+         push tRect onto tRectList
+      end repeat
+      return tRectList
    end if
-
-   return tRectList
 end handler
 
+public handler buildGridRectLists()
+   variable tList as List
+   variable tNum as Number
+   -- put getRectListSplitHorz(my bounds,mMaxXValue+1,false) into mHorizRectList -- +1 is for the Zero position
+   put getRectListSplitHorz(my bounds,mMaxXValue+1,false) into mHorizRectList -- +1 is for the Zero position
+   put getRectListSplitVert(my bounds,mMaxYValue+1,false) into mVertRectList -- +1 is for the Zero position
+   log mHorizRectList
+   put (the width of (element 1 of mHorizRectList)/8) into mCircleSize
+end handler
 
 end widget

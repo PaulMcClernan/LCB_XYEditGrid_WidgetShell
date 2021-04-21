@@ -36,4 +36,5 @@ import module community.livecode.paulmcclernan.xygrid
   handler setLocalGridCoordsFromLoc(in pPosition as Point, in pReverseX as Boolean, in pReverseY as Boolean) returns nothing
   handler getRectListSplitHorz(in pRect as optional any, in pDiv as Number, in pReverseOrder as Boolean) returns List
   handler getRectListSplitVert(in pRect as optional any, in pDiv as Number, in pReverseOrder as Boolean) returns List
+  handler buildGridRectLists() returns optional any
 end module
