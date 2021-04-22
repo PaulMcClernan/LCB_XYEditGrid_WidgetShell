@@ -7,3 +7,5 @@ support/._defaultscript.livecodescript
 ._api.lcdoc
 *.lcm
 manifest.xml
+._XYGridShell.lcb~
+._XYGridShell_revY.lcb
