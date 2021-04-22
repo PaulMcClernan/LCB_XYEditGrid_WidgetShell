@@ -1,0 +1,846 @@
+/**
+
+Description:
+Widget
+
+Name: mouseMove
+
+Type: message
+
+Name: gridMouseMove
+
+Type: message
+
+Name: gridMouseUp
+
+Type: message
+
+Name: gridMouseDown
+
+Type: message
+
+Name: mouseDown
+
+Type: message
+
+Name: mouseUp
+
+Type: message
+
+Name: mouseRelease
+
+Type: message
+
+Name: gridLines
+
+Type: property
+
+Name: backgroundColor
+
+Type: property
+
+Name: hiliteColor
+
+Type: property
+
+Name: outerShadowColor
+
+Type: property
+
+Name: borderWidth
+
+Type: property
+
+Name: borderColor
+
+Type: property
+
+Name: maxValue
+
+Type: property
+
+*/
+widget community.livecode.paulmcclernan.xygrid
+
+-- dependancy declarations
+use com.livecode.canvas
+use com.livecode.string
+use com.livecode.char
+use com.livecode.widget
+use com.livecode.engine
+use com.livecode.library.widgetutils
+
+-- adding metadata to ensure the extension displays correctly in livecode
+metadata title is "XYGridShell"
+metadata author is "Paul McClernan"
+metadata version is "0.1"
+metadata preferredSize is "256,256"
+-- metadata svgicon is "M0,0v69.6c0,1.4,1.1,2.5,2.4,2.5h9.7c0.8,0,1.5-0.4,2-1.1c0.4,0.7,1.1,1.1,2,1.1h9.8c0.8,0,1.5-0.4,1.9-1.1 c0.4,0.6,1.1,1.1,1.9,1.1h9.8c0.8,0,1.5-0.4,1.9-1.1c0.4,0.6,1.1,1.1,1.9,1.1h9.8c0.8,0,1.5-0.4,2-1.1c0.4,0.7,1.1,1.1,2,1.1h9.7 c0.8,0,1.5-0.4,1.9-1.1c0.4,0.6,1.1,1.1,1.9,1.1h9.7c0.8,0,1.5-0.4,1.9-1.1c0.4,0.6,1.1,1.1,1.9,1.1H94c1.3,0,2.4-1.1,2.4-2.5V0H0z M95.4,69.6c0,0.8-0.6,1.5-1.4,1.5h-9.8c-0.8,0-1.4-0.7-1.4-1.5V46.9h2.5c1,0,1.9-0.9,1.9-2V1h8.1L95.4,69.6z M80.4,71.1h-9.7 c-0.8,0-1.4-0.7-1.4-1.5V46.9h2.5c1,0,1.9-0.9,1.9-2V1h3.6v43.9c0,1.1,0.9,2,1.9,2h2.5v22.7C81.8,70.4,81.2,71.1,80.4,71.1z M57,71.1c-0.8,0-1.4-0.7-1.4-1.5V46.9h2.5c1,0,1.9-0.9,1.9-2V1h3.7v43.9c0,1.1,0.9,2,1.9,2h2.5v22.7c0,0.8-0.6,1.5-1.4,1.5 L57,71.1z M53.1,71.1h-9.8c-0.8,0-1.4-0.7-1.4-1.5V1H50v43.9c0,1.1,0.9,2,1.9,2h2.5v22.7C54.5,70.4,53.8,71.1,53.1,71.1z M28.3,69.6V46.9h2.5c1,0,1.9-0.9,1.9-2V1h8.1v68.6c0,0.8-0.6,1.5-1.4,1.5h-9.8C28.9,71.1,28.3,70.4,28.3,69.6z M14.7,69.6V46.9 h2.5c1,0,1.9-0.9,1.9
+-- 2V1h3.7v43.6l0,0v0.3c0,1.1,0.9,2,1.9,2h2.5v22.7c0,0.8-0.6,1.5-1.4,1.5H16C15.3,71.1,14.7,70.4,14.7,69.6z M12.1,71.1H2.4c-0.8,0-1.4-0.7-1.4-1.5V1h8.1v43.9c0,1.1,0.9,2,1.9,2h2.5v22.7C13.5,70.4,12.9,71.1,12.1,71.1z"
+
+private variable mCircleColor as Color
+-- property foregroundColor get getCircleColor set setCircleColor
+property circleColor   get getCircleColor   set setCircleColor
+metadata circleColor.editor  is "com.livecode.pi.colorwithalpha"
+metadata circleColor.section is "Colors"
+metadata circleColor.label   is "Point Marker fill"
+private handler setCircleColor(in pColor as String) returns nothing
+   put stringToColor(pColor) into mCircleColor
+   -- log mCircleColor
+   OnGeometryChanged()
+   redraw all
+end handler
+public handler getCircleColor() returns String
+   return colorToString(mCircleColor, true)
+end handler
+
+private variable mStrokesColor as Color
+property strokesColor get getBorderColor set setBorderColor
+metadata strokesColor.editor is "com.livecode.pi.colorwithalpha"
+metadata strokesColor.section is "Colors"
+metadata strokesColor.label   is "Stokes Color"
+public handler setBorderColor(in pColor as String) returns nothing
+   -- log pColor
+   put stringToColor(pColor) into mStrokesColor
+   -- log mStrokesColor
+   OnGeometryChanged()
+   redraw all
+end handler
+public handler getBorderColor() returns String
+   return colorToString(mStrokesColor, true)
+end handler
+
+property gridLines get getGridLines set setGridLines
+-- metadata gridLines.user_visible is "false"
+metadata gridLines.user_visible is "true"
+
+private variable mGridLines as List
+private handler setGridLines(pGridLines as String) returns nothing
+   variable tLinePoints as List
+   variable tLineListPoints as List
+   variable tPointStrList as List
+   variable tPointLstStr as String
+   variable tPointStr as String
+   variable tGridlineFromPoint as Point
+   put point [0,0] into tGridlineFromPoint
+   variable tGridlineToPoint as Point
+   put point [0,0] into tGridlineToPoint
+   variable tGridLineArray as Array
+   variable tNumA as Number
+   variable tNumB as Number
+
+   variable tNumStr as String
+   variable tGridLinesList as List
+   variable tGridLine as optional any
+   variable tOctaveIteration as Number
+   ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   -- put the empty list into mGridLines -- Clears all previous Lines in the entire grid
+   put the empty array into tGridLineArray["Start"]
+   put the empty array into tGridLineArray["Stop"]
+
+   split pGridLines by " " into tGridLinesList
+   if the number of elements in tGridLinesList > 0 then
+
+      repeat for each element tGridLine in tGridLinesList
+         split tGridLine by ":" into tLineListPoints
+         -- if (tLineListPoints[1]) is (tLineListPoints[2]) then -- Start and Stop loc are the same
+         --   log ["SAME START & STOP", tLineListPoints[1] , tLineListPoints[2] ]
+         -- end if
+         if the number of elements in tLineListPoints is 2 then
+            split tLineListPoints[1] by "," into tPointStrList
+            set the x of tGridlineFromPoint to (tPointStrList[1] parsed as number)
+            set the y of tGridlineFromPoint to (tPointStrList[2] parsed as number)
+            put tGridlineFromPoint into tGridLineArray["Start"]
+            split tLineListPoints[2] by "," into tPointStrList
+            set the x of tGridlineToPoint to (tPointStrList[1] parsed as number)
+            set the y of tGridlineToPoint to (tPointStrList[2] parsed as number)
+            put tGridlineToPoint into tGridLineArray["Stop"]
+         else
+            split tLineListPoints[1] by "," into tPointStrList
+            set the x of tGridlineFromPoint to (tPointStrList[1] parsed as number)
+            set the y of tGridlineFromPoint to (tPointStrList[2] parsed as number)
+            put tGridlineFromPoint into tGridLineArray["Start"]
+
+            split tLineListPoints[1] by "," into tPointStrList
+            set the x of tGridlineToPoint to (tPointStrList[1] parsed as number)
+            set the y of tGridlineToPoint to (tPointStrList[2] parsed as number)
+            put tGridlineToPoint into tGridLineArray["Stop"]
+         end if
+         if the x of tGridlineFromPoint > the x of tGridlineToPoint then -- End is to the left before the begining
+            -- swap start & stop x ---
+            put the x of tGridlineFromPoint into tNumA
+            put the x of tGridlineToPoint into tNumB
+            set the x of tGridlineFromPoint to tNumB
+            set the x of tGridlineToPoint to tNumA
+            put tGridlineFromPoint into tGridLineArray["Start"]
+            put tGridlineToPoint into tGridLineArray["Stop"]
+         end if
+         push tGridLineArray onto mGridLines
+      end repeat
+      -- log [mGridLines]
+      repeat for each element tGridLine in mGridLines
+         -- log tGridLine
+      end repeat
+   else
+      put the empty list into mGridLines
+   end if
+   redraw all
+end handler
+
+public handler getGridLines() returns optional any
+   variable tGridLine as optional any
+   variable tReturnStr as optional String
+   put "" into tReturnStr
+   repeat for each element tGridLine in mGridLines
+      put the x of tGridLine["Start"] formatted as string &","& the y of tGridLine["Start"] formatted as string &":" \
+         & the x of tGridLine["Stop"] formatted as string &","& the y of tGridLine["Stop"] formatted as string & "\n" after tReturnStr
+   end repeat
+   return tReturnStr
+end handler
+
+private variable mBorderWidth as Number
+property borderWidth get mBorderWidth  set setBorderWidth
+metadata borderWidth.editor is "com.livecode.pi.number"
+metadata borderWidth.label is "Border width"
+metadata borderWidth.step is "0.1"
+metadata borderWidth.default is "0.1"
+metadata borderWidth.min is "0.1"
+metadata borderWidth.max is "25"
+public handler setBorderWidth(in pBorderWidth as Number) returns nothing
+   put pBorderWidth into mBorderWidth
+   OnGeometryChanged()
+   redraw all
+end handler
+
+variable mHorizRectList as List
+variable mVertRectList as List
+
+private variable mMaxXValue as Number
+property maxXValue get getMaxXValue set setMaxXValue
+metadata maxXValue.editor is "com.livecode.pi.number"
+metadata maxXValue.default is "64"
+metadata maxXValue.min is "0"
+
+public handler setMaxXValue(in pMaxXValue as Number) returns nothing
+   if pMaxXValue < 0 then
+      put 0 into pMaxXValue
+   end if
+   -- put pMaxXValue * 2 into mMaxXValue -- use when 0,0 is center (signed version)
+   put pMaxXValue into mMaxXValue -- use when range is 0,0 (at top,left) to MaxX,MaxY (at bottom,right)
+
+   OnGeometryChanged()
+   redraw all
+end handler
+public handler getMaxXValue() returns Number
+   --- return mMaxXValue / 2 -- for the position in signed version
+   return mMaxXValue
+end handler
+
+private variable mMaxYValue as Number
+property maxYValue get getMaxYValue set setMaxYValue
+metadata maxYValue.editor is "com.livecode.pi.number"
+metadata maxYValue.default is "24" -- ten octaves worth ;-)
+metadata maxYValue.min is "0"
+
+public handler setMaxYValue(in pMaxYValue as Number) returns nothing
+   if pMaxYValue < 0 then
+      put 0 into pMaxYValue
+   end if
+   --- put pMaxYValue * 2 into mMaxYValue -- use when 0,0 is center (signed version)
+   put pMaxYValue into mMaxYValue -- use when range is 0,0 (at top,left) to MaxX,MaxY (at bottom,right)
+
+   OnGeometryChanged()
+   redraw all
+end handler
+public handler getMaxYValue() returns Number
+      -- return mMaxYValue / 2
+      return mMaxYValue
+end handler
+
+private variable mCircleSize as Number
+property circleSize get mCircleSize set setCircleSize
+
+metadata maxValue.editor is "com.livecode.pi.number"
+public handler setCircleSize(in pCircleSize as Number) returns nothing
+   put pCircleSize into mCircleSize
+   OnGeometryChanged()
+   redraw all
+end handler
+
+private variable mOnlyMouseDownMoves as Boolean
+property onlyMouseDownMoves get mOnlyMouseDownMoves set mOnlyMouseDownMoves
+metadata onlyMouseDownMoves.editor is "com.livecode.pi.boolean"
+metadata onlyMouseDownMoves.default is "true"
+
+private variable mSelectionMode as Boolean
+property selectionMode get mSelectionMode set mSelectionMode
+metadata mSelectionMode.editor is "com.livecode.pi.boolean"
+metadata mSelectionMode.default is "true"
+
+private variable mSnapBackToZero as Boolean
+property snapBackToZero get mSnapBackToZero set mSnapBackToZero
+metadata snapBackToZero.editor is "com.livecode.pi.boolean"
+metadata snapBackToZero.default is "true" -- ten octaves worth ;-)
+
+private variable mDrawLineToLoc as Boolean
+property drawLineToLoc get mDrawLineToLoc set mDrawLineToLoc
+metadata drawLineToLoc.editor is "com.livecode.pi.boolean"
+metadata drawLineToLoc.default is "true" -- ten octaves worth ;-)
+-----------------------------------------------------------------------------------------------  Mouse Handlers --------------------------------------------------------------------------------------
+private variable mMouseButtonDown as Boolean
+
+public handler OnMouseUp()
+  put false into mMouseButtonDown
+  --- post signed version:
+  --- post "gridMouseUp" with [mLocalLoc[1] -(mMaxXValue/2),(mLocalLoc[2] -(mMaxYValue/2)) * -1] --  to my script object with [the click button]
+  --- post unsigned version:
+  setLocalGridCoordsFromLoc(the mouse position,false,true)
+  put [mLocalLoc[1],mLocalLoc[2]] into mSelectionEndLocalLoc
+  post "gridMouseUp" with [mSelectionEndLocalLoc[1],mSelectionEndLocalLoc[2]] --  to my script object with [the click button]
+  post "mouseUp" with [the click button] --- to my script object with [the click button]
+  if mOnlyMouseDownMoves then
+     if mLocalLoc is not nothing then
+         if mSnapBackToZero then
+            repeat forever
+              if mLocalLoc[1] > 0 then
+                put mLocalLoc[1] - 1 into mLocalLoc[1]
+                if mLocalLoc[1] < 0 then
+                    put 0 into mLocalLoc[1]
+                end if
+              end if
+              if mLocalLoc[2] > 0 then
+                  put mLocalLoc[2] - 1 into mLocalLoc[2]
+                  if mLocalLoc[2] < 0 then
+                     put 0 into mLocalLoc[2]
+                  end if
+               end if
+               redraw all
+                if mLocalLoc[1] = 0 and mLocalLoc[2] = 0 then
+                   exit repeat
+                end if
+           end repeat
+           ---- if 0,0 is the center point -----------
+           -- repeat forever
+            --  if mLocalLoc[1] > (mMaxXValue/2) then
+            --     put mLocalLoc[1] - 1 into mLocalLoc[1]
+            --     if mLocalLoc[1] < (mMaxXValue/2) then
+            --        put (mMaxXValue/2) into mLocalLoc[1]
+            --     end if
+            -- end if
+            --  if mLocalLoc[2] > (mMaxYValue/2) then
+            --      put mLocalLoc[2] - 1 into mLocalLoc[2]
+            --      if mLocalLoc[2] < (mMaxYValue/2) then
+            --         put (mMaxYValue/2) into mLocalLoc[2]
+            --      end if
+            --   end if
+            --   if mLocalLoc[1] < (mMaxXValue/2) then
+            --      put mLocalLoc[1] + 1 into mLocalLoc[1]
+            --      if mLocalLoc[1] > (mMaxXValue/2) then
+            --         put (mMaxXValue/2) into mLocalLoc[1]
+            --      end if
+            --   end if
+            --   if mLocalLoc[2] < (mMaxYValue/2) then
+            --      put mLocalLoc[2] + 1 into mLocalLoc[2]
+            --      if mLocalLoc[2] > (mMaxYValue/2) then
+            --         put (mMaxYValue/2) into mLocalLoc[2]
+            --      end if
+            --   end if
+            --   redraw all
+            --    if mLocalLoc[1] = (mMaxXValue/2) and mLocalLoc[2] = (mMaxYValue/2) then
+            --       exit repeat
+            --    end if
+           -- end repeat
+           ---- if 0,0 is the NOT the center point ---------
+        end if
+
+      end if
+  end if
+  put [0,0] into mLocalLoc
+  put nothing into mSelectionStartLocalLoc
+  put nothing into mSelectionEndLocalLoc
+
+  redraw all
+end handler
+
+variable mSelectionStartLocalLoc as optional List
+variable mSelectionEndLocalLoc as optional List
+
+public handler OnMouseDown()
+   put true into mMouseButtonDown
+   variable tPosition as Point
+   setLocalGridCoordsFromLoc(the mouse position,false,true) -- setLocalGridCoordsFromLoc (pLoc,pReverseX,pReverseY)
+   redraw all
+   post "mouseDown" with [the click button] --- to my script object with [the click button]
+   --- post signed version:
+   --- post "gridMouseDown" with [mLocalLoc[1] -(mMaxXValue/2),(mLocalLoc[2] -(mMaxYValue/2)) * -1] --  to my script object with [the click button]
+   --- post unsigned version:
+   put [mLocalLoc[1],mLocalLoc[2]] into mSelectionStartLocalLoc
+   put [mLocalLoc[1],mLocalLoc[2]] into mSelectionEndLocalLoc
+   post "gridMouseDown" with [ mLocalLoc[1], mLocalLoc[2] ]
+   -- post "gridMouseDown" with [mSelectionStartLocalLoc[1],mSelectionStartLocalLoc[2]] --  to my script object with [the click button]
+end handler
+
+public handler OnMouseMove()
+   if mOnlyMouseDownMoves is true and mMouseButtonDown is false then
+      -- do nothing
+   else
+      variable tPosition as Point
+      put the mouse position into tPosition
+      setLocalGridCoordsFromLoc(the mouse position,false,true) -- setLocalGridCoordsFromLoc (pLoc,pReverseX,pReverseY)
+      put [mLocalLoc[1],mLocalLoc[2]] into mSelectionEndLocalLoc
+      --variable tRoundedPosition as Point
+      -- put point [0,0] into tRoundedPosition
+      -- put the rounded of (the x of tPosition) into the x of tRoundedPosition
+      -- put the rounded of (the y of tPosition) into the y of tRoundedPosition
+      -- setLocalGridCoordsFromLoc(tRoundedPosition)
+
+      redraw all
+      post "mouseMove" with [the x of tPosition, the y of tPosition]
+      -- post "gridMouseMove" with [ the rounded of ( mLocalLoc[1] (mMaxValue/2) ), the rounded of ( (mLocalLoc[2] (mMaxValue/2)) * -1 )]
+      -- post "gridMouseMove" with [ mLocalLoc[1] -(mMaxXValue/2), (mLocalLoc[2] -(mMaxYValue/2)) * -1 ]
+      --- post unsigned version:
+      post "gridMouseMove" with [mLocalLoc[1],mLocalLoc[2]] --  to my script object with [the click button]
+
+   end if
+end handler
+
+public handler OnMouseCancel()
+   -- put false into mPianoMouseButtonDown
+   OnMouseUp()
+end handler
+--public handler OnMouseCancelHover()
+--   put false into mMouseButtonDown
+--   OnMouseUp()
+--end handler
+--public handler OnMouseEnter()
+   --variable tMouseButtonState as String
+   --execute script "global gPianoMouseButtonDown ; return gPianoMouseButtonDown"
+   --execute script "return mouse()"
+   -- log the result
+   --if the result is "up" then
+      --put false into mMouseButtonDown
+       -- OnMouseUp()
+   --else
+       --put true into mMouseButtonDown
+       -- OnMouseDown()
+   --end if
+--end handler
+
+public handler OnMouseScroll(deltaX, deltaY)
+   --> deltaX is the horizontal scroll
+   --> deltaY is the vertical scroll
+   --> deltaX and deltaY are -1 or 1 (or 0)
+   --> on a mouse with vertical scroll only the
+   --> horizontal scroll is triggered with Shift
+  log [deltaX, deltaY]
+end handler
+
+-----------------------------------------------------------------------------------------------  Creating & Drawing --------------------------------------------------------------------------------------
+public handler OnSave(out rProperties as Array)
+   put mBorderWidth into rProperties["borderWidth"]
+   put colorToString(mStrokesColor, false) into rProperties["strokesColor"]
+   put colorToString(mCircleColor, false) into rProperties["circleColor"]
+   -- put colorToString(mHiliteColor, true) into rProperties["hiliteColor"]
+end handler
+-- this handler is called when the widget is loaded
+public handler OnLoad(in pProperties as Array)
+   -- log [pProperties] --> logging this doesn't seem to work! -- moreover, it silently fails making debugging difficult
+   put pProperties["borderWidth"] into mBorderWidth
+   put stringToColor(pProperties["strokesColor"]) into mStrokesColor
+   put stringToColor(pProperties["circleColor"]) into mCircleColor
+   -- OnGeometryChanged()
+   redraw all
+end handler
+
+public handler OnStopEditing()
+   OnGeometryChanged()
+   redraw all
+end handler
+
+
+
+public handler OnCreate()
+   variable tRect
+   variable tList as List
+   variable tNum as Number
+   put true into mSelectionMode
+   put [0,0] into mLocalLoc
+   put [0,0] into mSelectionStartLocalLoc
+   put [0,0] into mSelectionEndLocalLoc
+   put 32 into mMaxXValue
+   put 24 into mMaxYValue
+
+   buildGridRectLists()
+   put (the width of (element 1 of mHorizRectList)/8) into mCircleSize
+   put 0.1 into mBorderWidth
+   put the color of my foreground paint into mCircleColor
+   put the color of my border paint into mStrokesColor
+end handler
+
+public handler OnGeometryChanged()
+   buildGridRectLists()
+   redraw all
+end handler
+--------------------------------------------------------------------------------------------------------------
+-- called whenever LiveCode needs to redraw the widget
+public handler OnPaint()
+   variable tRect as Rectangle
+   variable tElement
+   -- variable tRectList as List
+   variable tHoriz as optional Number
+   variable tVert as optional Number
+   variable tHorizStart as optional Number
+   variable tVertStart as optional Number
+   variable tHorizEnd as optional Number
+   variable tVertEnd as optional Number
+   variable tHorizCellWidth as optional Number
+   variable tVertCellHeight as optional Number
+   variable tPath
+   variable tNum as Number
+   variable tFont as Font
+   variable tBounds as Rectangle
+   ---------------------------------------------------------- draw grid ------------------------------------------------------
+   set the stroke width of this canvas to mBorderWidth
+   set the paint of this canvas to solid paint with mStrokesColor
+   ----------------------------- columns ----------------------------
+   put rectangle path of mHorizRectList[1] into tPath
+   stroke tPath on this canvas
+   -- Set up tFont as size 4 Arial
+   put font "Arial" at size 1 into tFont
+   -- Measure text with tFont
+   --put the image bounds of text "Sample text" with tFont into tBounds
+   --put the bounds of text "Sample text" with tFont into tBounds
+   fill text "0" at top left of mHorizRectList[1] on this canvas
+
+   repeat with tNum from 1 up to (the number of elements in mHorizRectList)
+   -- repeat for each element tElement in mHorizRectList
+      put rectangle path of mHorizRectList[tNum] into tPath
+      stroke tPath on this canvas
+      -- Set up tFont as size 4 Arial
+      --put font "Arial" at size 1 into tFont
+      -- Measure text with tFont
+      --put the image bounds of text "Sample text" with tFont into tBounds
+      --put the bounds of text "Sample text" with tFont into tBounds
+      fill text ((tNum) formatted as string) at top left of mHorizRectList[tNum] on this canvas
+   end repeat
+   ----------------------------- rows -------------------------------
+   put rectangle path of mVertRectList[1] into tPath
+   stroke tPath on this canvas
+   -- Set up tFont as size 4 Arial
+   put font "Arial" at size 1 into tFont
+   fill text "0" at top left of mVertRectList[1] on this canvas
+   repeat with tNum from 1 up to (the number of elements in mVertRectList)
+      put rectangle path of mVertRectList[tNum] into tPath
+      stroke tPath on this canvas
+      -- Set up tFont as size 4 Arial
+      put font "Arial" at size 1 into tFont
+      -- Measure text with tFont
+      --put the image bounds of text "Sample text" with tFont into tBounds
+      --put the bounds of text "Sample text" with tFont into tBounds
+      fill text ((tNum) formatted as string) at center of mVertRectList[tNum] on this canvas
+   end repeat
+
+   put the right of (element 1 of mHorizRectList) into tHorizCellWidth
+   put the bottom of (element 1 of mVertRectList) into tVertCellHeight
+   ------------------------------------------------------------------ Draw Cross Hair:
+   -- set the stroke width of this canvas to mBorderWidth * 3
+   -- set the paint of this canvas to solid paint with mStrokesColor
+   -- put line path from point [my width / 2, 0] to point [my width / 2,my height] into tPath
+   -- stroke tPath on this canvas
+   -- put line path from point [0,my height / 2] to point [my width,my height/2] into tPath
+   -- stroke tPath on this canvas
+   ------------------------------------------------------------------ Quarter Horizontal Markers:
+    set the stroke width of this canvas to mBorderWidth * 16
+    set the paint of this canvas to solid paint with mStrokesColor
+    put line path from point [tHorizCellWidth * (mMaxXValue * .25), 0] to point [tHorizCellWidth *(mMaxXValue * 0.25),my height] into tPath
+    stroke tPath on this canvas
+    put line path from point [tHorizCellWidth * (mMaxXValue * 0.5), 0 ] to point [tHorizCellWidth *(mMaxXValue * 0.5),my height] into tPath
+    stroke tPath on this canvas
+    put line path from point [tHorizCellWidth * (mMaxXValue * 0.75), 0] to point [tHorizCellWidth *(mMaxXValue * 0.75),my height] into tPath
+    stroke tPath on this canvas
+   -----------------------------------------------------------------Draw Outer Border:
+   set the paint of this canvas to solid paint with mStrokesColor
+   set the stroke width of this canvas to (mBorderWidth * 16)
+   put my bounds into tRect
+   stroke rectangle path of tRect on this canvas
+   ------------------------------------------------------------------  Draw Loc Marker:
+   set the stroke width of this canvas to mBorderWidth
+   if mLocalLoc is not nothing then
+      put (element 1 of mLocalLoc * tHorizCellWidth ) into tHoriz
+      put (element 2 of mLocalLoc * tVertCellHeight ) into tVert
+      if mDrawLineToLoc then
+         -- put line path from point [my width / 2, my height / 2] to point [tHoriz,tVert] into tPath -- center is 0,0 -signed int version
+         put line path from point [0,0] to point [tHoriz + tHorizCellWidth/2 ,tVert + tVertCellHeight/2] into tPath -- 0,0 as is  unsigned int version
+         stroke tPath on this canvas
+      end if
+      set the paint of this canvas to solid paint with mCircleColor
+      put circle path centered at point [tHoriz + tHorizCellWidth/2 ,tVert + tVertCellHeight/2] with radius mCircleSize into tPath
+      fill tPath on this canvas
+
+      -- set the paint of this canvas to solid paint with color [1,0,0,0.1]
+      -- put rectangle path of rectangle [mSelectionStartLocalLoc[1] * tHorizCellWidth , mSelectionStartLocalLoc[2] * tVertCellHeight, tHoriz, tVert] into tPath
+      -- fill tPath on this canvas
+   end if
+    -----------------------------------------------------------------Draw Selection Border:
+    if mSelectionMode then
+       if mLocalLoc is not nothing then
+          if mSelectionStartLocalLoc is not nothing then
+             put (element 1 of mLocalLoc * tHorizCellWidth ) into tHoriz
+             put (element 2 of mLocalLoc * tVertCellHeight ) into tVert
+               if mLocalLoc[1] < mSelectionStartLocalLoc[1] then -- WE ARE IN A X TO THE LEFT OF START X
+                     put tHoriz - tHorizCellWidth into tHoriz
+                     put tVert + tVertCellHeight/2 into tVert
+               else if (mLocalLoc[1] > mSelectionStartLocalLoc[1]) then -- WE ARE IN A X TO THE TO THE RIGHT OF START X
+                     put tHoriz into tHoriz
+                     put tVert + tVertCellHeight/2 into tVert
+               else if (mLocalLoc[1] = mSelectionStartLocalLoc[1]) then -- WE ARE IN THE SAME X AS THE START X
+                     put tHoriz into tHoriz
+                     put tVert + tVertCellHeight/2 into tVert
+               end if
+
+               if mLocalLoc[2] < mSelectionStartLocalLoc[2] then --- WE ARE IN A Y ABOVE THE START  Y
+                     put tHoriz + tHorizCellWidth into tHoriz
+                     put tVert  - tVertCellHeight/2 into tVert
+               else if (mLocalLoc[2] > mSelectionStartLocalLoc[2]) then --- WE ARE IN A Y BELLOW THE START Y
+                     put tHoriz + tHorizCellWidth into tHoriz
+                     put tVert + tVertCellHeight/2 into tVert
+               else if (mLocalLoc[2] = mSelectionStartLocalLoc[2]) then --- WE ARE IN THE SAME Y AS THE START Y
+                     put tHoriz + tHorizCellWidth into tHoriz
+                     put tVert into tVert
+               end if
+               --else if mLocalLoc[1]=mSelectionStartLocalLoc[1] and mLocalLoc[2]=mSelectionStartLocalLoc[2] then
+               --   put tVert + tVertCellHeight into tVert
+               --   put tVert + tVertCellHeight into tVert
+               -- end if
+            put rectangle path of rectangle [(mSelectionStartLocalLoc[1] * tHorizCellWidth) ,(mSelectionStartLocalLoc[2] * tVertCellHeight) , tHoriz, tVert] into tPath
+            set the paint of this canvas to solid paint with color [0,1,0,0.25]
+            fill tPath on this canvas
+         end if
+       end if
+    end if
+   -----------------------------------------------------------------Draw Current Line:
+
+   if mSelectionStartLocalLoc is not nothing then
+      -- if mSelectionEndLocalLoc is not nothing then
+         put ((element 1 of mSelectionStartLocalLoc * tHorizCellWidth)+tHorizCellWidth/2) into tHorizStart
+         put ((element 2 of mSelectionStartLocalLoc * tVertCellHeight)+tVertCellHeight/2) into tVertStart
+         put ((element 1 of mLocalLoc * tHorizCellWidth )+tHorizCellWidth/2)  into tHorizEnd
+         put ((element 2 of mLocalLoc * tVertCellHeight )+tVertCellHeight/2) into tVertEnd
+
+         if tHorizStart = tHorizEnd and tVertStart = tVertEnd then
+            put tHorizStart - tHorizCellWidth/2 into tHorizStart
+            put tHorizEnd + tHorizCellWidth/2 into tHorizEnd
+         else if tHorizStart > tHorizEnd and tVertStart = tVertEnd then --- we are in a cell at the at the same Y going LEFT
+            put tHorizStart - tHorizCellWidth/2 into tHorizStart
+            put tHorizEnd - tHorizCellWidth/2 into tHorizEnd
+         else if tHorizStart < tHorizEnd and tVertStart = tVertEnd then -- we are in a cell at the at the same height going RIGHT
+            put tHorizStart - tHorizCellWidth/2 into tHorizStart
+            put tHorizEnd + tHorizCellWidth/2 into tHorizEnd
+         end if
+         if tVertStart > tVertEnd and tHorizStart = tHorizEnd then --- we are in a cell at the at the same X going UP
+            put tVertStart +  tVertCellHeight/2 into tVertStart
+            put tVertEnd - tVertCellHeight/2 into tVertEnd
+         else if tVertStart < tVertEnd and tHorizStart = tHorizEnd then -- we are in a cell at the at the same height going DOWN
+            put tVertStart - tVertCellHeight/2 into tVertStart
+            put tVertEnd + tVertCellHeight/2 into tVertEnd
+         end if
+         put line path from point [tHorizStart,tVertStart] to point [tHorizEnd ,tVertEnd] into tPath
+         -- put line path from point [ tHorizStart , tVertStart ] to point [tHorizEnd, tVertEnd] into tPath
+
+         set the paint of this canvas to solid paint with color [0.5,0.0,0.25,0.5]
+         set the stroke width of this canvas to tVertCellHeight - mBorderWidth*16
+         stroke tPath on this canvas
+      -- end if
+   end if
+   -----------------------------------------------------------------Draw any gridLines that were set ----------------------
+   if mGridLines is not nothing then
+      variable tGridLine as optional any
+      repeat for each element tGridLine in mGridLines
+         put ((the x of tGridLine["Start"] * tHorizCellWidth )+tHorizCellWidth/2) into tHorizStart
+         put ((the y of tGridLine["Start"] * tVertCellHeight )+tVertCellHeight/2) into tVertStart
+         put ((the x of tGridLine["Stop"] * tHorizCellWidth )+tHorizCellWidth/2)  into tHorizEnd
+         put ((the y of tGridLine["Stop"] * tVertCellHeight )+tVertCellHeight/2) into tVertEnd
+
+         if tHorizStart = tHorizEnd and tVertStart = tVertEnd then
+            put tHorizStart - tHorizCellWidth/2 into tHorizStart
+            put tHorizEnd + tHorizCellWidth/2 into tHorizEnd
+         else if tHorizStart > tHorizEnd and tVertStart = tVertEnd then --- we are in a cell at the at the same Y going LEFT
+            put tHorizStart - tHorizCellWidth/2 into tHorizStart
+            put tHorizEnd - tHorizCellWidth/2 into tHorizEnd
+         else if tHorizStart < tHorizEnd and tVertStart = tVertEnd then -- we are in a cell at the at the same height going RIGHT
+            put tHorizStart - tHorizCellWidth/2 into tHorizStart
+            put tHorizEnd + tHorizCellWidth/2 into tHorizEnd
+         end if
+         if tVertStart > tVertEnd and tHorizStart = tHorizEnd then --- we are in a cell at the at the same X going UP
+            put tVertStart +  tVertCellHeight/2 into tVertStart
+            put tVertEnd - tVertCellHeight/2 into tVertEnd
+         else if tVertStart < tVertEnd and tHorizStart = tHorizEnd then -- we are in a cell at the at the same height going DOWN
+            put tVertStart - tVertCellHeight/2 into tVertStart
+            put tVertEnd + tVertCellHeight/2 into tVertEnd
+         end if
+         put line path from point [tHorizStart,tVertStart] to point [tHorizEnd ,tVertEnd] into tPath
+
+         set the paint of this canvas to solid paint with color [0.5,0.5,0.125,0.5]
+         set the stroke width of this canvas to tVertCellHeight
+         stroke tPath on this canvas
+      end repeat
+   end if
+
+end handler
+
+-- this handler is called when a card containg the widget is opened
+public handler OnOpen()
+   OnGeometryChanged()
+   redraw all
+end handler
+
+variable mLocalLoc as optional List
+public handler setLocalGridCoordsFromLoc(in pPosition as Point, in pReverseX as Boolean,in pReverseY as Boolean) returns nothing
+   variable tRectList as List
+   variable tRectNum as Number
+   variable tHoriz as optional Number
+   variable tVert as optional Number
+   variable tRect
+   if mLocalLoc is nothing then
+      put [0,0] into mLocalLoc
+   end if
+   put my bounds into tRect
+   if pReverseX then
+      repeat with tRectNum from mMaxXValue + 1 down to 1
+         put mHorizRectList[tRectNum] into tRect
+         if pPosition is within tRect then
+            put tRectNum -1 into tHoriz
+            exit repeat
+         end if
+      end repeat
+   else
+      repeat with tRectNum from 1 up to mMaxXValue + 1
+         put mHorizRectList[tRectNum] into tRect
+         if pPosition is within tRect then
+            put tRectNum -1 into tHoriz
+            exit repeat
+         end if
+      end repeat
+   end if
+   if tHoriz is not nothing then
+      put tHoriz into mLocalLoc[1]
+      if  mSelectionEndLocalLoc is the empty list then
+         put mLocalLoc[1] into mSelectionEndLocalLoc[1]
+      end if
+   end if
+
+   if pReverseY then
+      repeat with tRectNum from mMaxYValue down to 1
+         put mVertRectList[tRectNum] into tRect
+         if pPosition is within tRect then
+            put mMaxYValue - tRectNum into tVert
+            -- put tRectNum into tVert
+            exit repeat
+         end if
+      end repeat
+   else
+      repeat with tRectNum from 1 up to mMaxYValue
+         put mVertRectList[tRectNum] into tRect
+         if pPosition is within tRect then
+            put tRectNum -1 into tVert
+            exit repeat
+         end if
+      end repeat
+   end if
+   if tVert is not nothing then
+      put tVert into mLocalLoc[2]
+      if  mSelectionEndLocalLoc is the empty list then
+         put mLocalLoc[2] into mSelectionEndLocalLoc[2]
+      end if
+   end if
+end handler
+
+public handler getRectListSplitHorz(in pRect, in pDiv as Integer, in pReverseOrder as Boolean) returns List
+   variable tWidth as Integer
+   variable tHeight as Integer
+   variable tLeft as Integer
+   variable tTop as Integer
+   variable tRect
+   variable tRectList as List
+   variable tSplitWidth as Integer
+   variable tCounter as Integer
+   if pDiv < 1 then
+      put 1 into pDiv
+   end if
+   put the top of pRect into tTop
+   put the left of pRect into tLeft
+   put the bottom of pRect into tHeight
+   put the right of pRect into tWidth
+   put tWidth/pDiv into tSplitWidth
+   put rectangle [tLeft,tTop,tSplitWidth,tHeight] into tRect
+   push tRect onto tRectList
+   if pReverseOrder is true then
+      repeat with tCounter from 1 up to pDiv
+         put rectangle [tLeft+(tSplitWidth*tCounter),tTop,(tSplitWidth*tCounter)+tSplitWidth,tHeight] into tRect
+         push tRect onto back of tRectList
+      end repeat
+   else
+      repeat with tCounter from 1 up to pDiv
+         put rectangle [tLeft+(tSplitWidth*tCounter),tTop,(tSplitWidth*tCounter)+tSplitWidth,tHeight] into tRect
+         push tRect onto tRectList
+      end repeat
+   end if
+   return tRectList
+end handler
+
+public handler getRectListSplitVert(in pRect, in pDiv as Integer,in pReverseOrder as Boolean) returns List
+   variable tWidth as Integer
+   variable tHeight as Integer
+   variable tLeft as Integer
+   variable tTop as Integer
+   variable tRect
+   variable tRectList as List
+   variable tRevRecList as List
+   put the empty list into tRevRecList
+   variable tNum as Number
+
+   variable tSplitHeight as Integer
+   variable tCounter as Integer
+   if pDiv < 1 then
+      put 1 into pDiv
+   end if
+   put the top of pRect into tTop
+   put the left of pRect into tLeft
+   put the bottom of pRect into tHeight
+   put the right of pRect into tWidth
+   put tHeight/pDiv into tSplitHeight
+   put rectangle [tLeft,tTop,tWidth,tSplitHeight] into tRect -- 0 rect at top
+   push tRect onto tRectList -- push 0,0 rect
+   if pReverseOrder is true then
+      repeat with tCounter from pDiv down to 1
+         put rectangle [tLeft,tTop+(tSplitHeight * tCounter),tWidth,(tCounter * tSplitHeight)+tSplitHeight] into tRect
+         push tRect onto tRectList
+      end repeat
+      repeat with tNum from 1 up to pDiv
+      -- repeat with tNum from  (the number of elements in tList) down to 1
+          --log [ tNum,mVertRectList[tNum]]
+         push tRectList[tNum] onto back of tRevRecList
+         -- push tRectList[tNum] onto front of tRevRecList
+      end repeat
+      return tRevRecList
+   else
+      repeat with tCounter from 1 up to pDiv
+         put rectangle [tLeft,tTop+(tSplitHeight * tCounter),tWidth,(tCounter * tSplitHeight)+tSplitHeight] into tRect
+         push tRect onto tRectList
+      end repeat
+      return tRectList
+   end if
+end handler
+
+public handler buildGridRectLists()
+   variable tList as List
+   variable tNum as Number
+   -- put getRectListSplitHorz(my bounds,mMaxXValue+1,false) into mHorizRectList -- +1 is for the Zero position
+   put getRectListSplitHorz(my bounds,mMaxXValue,false) into mHorizRectList -- +1 is for the Zero position
+   put getRectListSplitVert(my bounds,mMaxYValue,true) into mVertRectList -- +1 is for the Zero position
+   repeat with tNum from 1 up to (the number of elements in mVertRectList)
+      log [tNum,mHorizRectList[tNum]]
+   end repeat
+end handler
+
+end widget
