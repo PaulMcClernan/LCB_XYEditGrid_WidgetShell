@@ -241,7 +241,7 @@ end handler
 private variable mMaxYValue as Number
 property maxYValue get getMaxYValue set setMaxYValue
 metadata maxYValue.editor is "com.livecode.pi.number"
-metadata maxYValue.default is "24" -- ten octaves worth ;-)
+metadata maxYValue.default is "12" -- ten octaves worth ;-)
 metadata maxYValue.min is "0"
 
 public handler setMaxYValue(in pMaxYValue as Number) returns nothing
@@ -528,9 +528,9 @@ public handler OnPaint()
    variable tHorizCellWidth as optional Number
    variable tVertCellHeight as optional Number
 
-   put the right of (element 1 of mHorizRectList) into tHorizCellWidth
+   put the right of (element 1 of mHorizRectList) - the left of (element 1 of mHorizRectList) into tHorizCellWidth
    put mVertRectList[1] into tElement
-   put the bottom of (tElement["VertRect"]) into tVertCellHeight
+   put the bottom of (tElement["VertRect"]) - the top of (tElement["VertRect"]) into tVertCellHeight
 
    variable tFont as Font
    variable tBounds as Rectangle
@@ -667,7 +667,7 @@ public handler OnPaint()
          -- put line path from point [ tHorizStart , tVertStart ] to point [tHorizEnd, tVertEnd] into tPath
 
          set the paint of this canvas to solid paint with color [0.5,0.0,0.25,0.5]
-         set the stroke width of this canvas to (tVertCellHeight - (mBorderWidth * 4))
+         set the stroke width of this canvas to (tHorizCellWidth * 0.75)
          stroke tPath on this canvas
       -- end if
    end if
@@ -748,18 +748,21 @@ public handler setLocalGridCoordsFromLoc(in pPosition as Point, in pReverseX as 
       if  mSelectionEndLocalLoc is the empty list then
          put mLocalLoc[1] into mSelectionEndLocalLoc[1]
       end if
-      -- if  mSelectionStartLocalLoc is the empty list then
-      -- put mLocalLoc[1] into mSelectionStartLocalLoc[1]
-      -- end if
+      if  mSelectionStartLocalLoc is the empty list then
+         put mLocalLoc[1] into mSelectionStartLocalLoc[1]
+      end if
    end if
 
    if pReverseY then
-      repeat with tRectNum from (the number of elements in mVertRectList) down to 1
+      repeat with tRectNum from 1 up to (the number of elements in mVertRectList)
+      -- repeat with tRectNum from (the number of elements in mVertRectList) down to 1
          put mVertRectList[tRectNum] into tVertRect
          put tVertRect["VertRect"] into tRect
          if pPosition is within tRect then
             -- put mMaxYValue + 1 - tRectNum -1 into tVert
-            put tVertRect ["VertIndex"] into tVert
+            -- put tVertRect ["VertIndex"] into tVert
+            put mMaxYValue - 1 + (tVertRect ["VertIndex"] * -1) into tVert
+
             -- put tRectNum into tVert
             exit repeat
          end if
@@ -782,9 +785,9 @@ public handler setLocalGridCoordsFromLoc(in pPosition as Point, in pReverseX as 
       if  mSelectionEndLocalLoc is the empty list then
          put mLocalLoc[2] into mSelectionEndLocalLoc[2]
       end if
-      -- if  mSelectionStartLocalLoc is the empty list then
-      --    put mLocalLoc[2] into mSelectionStartLocalLoc[2]
-      --  end if
+       if  mSelectionStartLocalLoc is the empty list then
+          put mLocalLoc[2] into mSelectionStartLocalLoc[2]
+       end if
    end if
 end handler
 
@@ -844,25 +847,27 @@ public handler getRectListSplitVert(in pRect, in pDiv as Integer,in pReverseOrde
    put tHeight / pDiv into tSplitHeight
 
    if pReverseOrder is true then
-      repeat with tCounter from pDiv down to 1
+      repeat with tCounter from pDiv-1 down to 1
          put rectangle [tLeft,tTop+(tSplitHeight * tCounter),tWidth,(tCounter * tSplitHeight)+tSplitHeight] into tRect
-         push tRect onto front of tRectList
+         push tRect onto back of tRectList
       end repeat
       put rectangle [tLeft,tTop,tWidth,tSplitHeight] into tRect -- 0 rect at top
-      push tRect onto front of tRectList -- push 0,0 rect
-      repeat with tNum from 1 up to (the number of elements in tRectList)
+      push tRect onto back of tRectList -- push 0,0 rect
+      put (the number of elements in tRectList) into tNum
+      log ["VertRects Generated",tNum]
+      repeat with tNum from (the number of elements in tRectList) down to 1
       -- repeat with tNum from 1 up to pDiv
       -- repeat with tNum from (the number of elements in tRectList) down to 1
           --log [ tNum,mVertRectList[tNum]]
-         -- push tRectList[tNum] onto back of tRevRecList
-        push tRectList[tNum] onto front of tRevRecList
+         -- push tRectList[tNum] onto front of tRevRecList
+        push tRectList[tNum] onto back of tRevRecList
       end repeat
 
       return tRevRecList
    else
       put rectangle [tLeft,tTop,tWidth,tSplitHeight] into tRect -- 0 rect at top
       push tRect onto tRectList -- push 0,0 rect
-      repeat with tCounter from 1 up to pDiv
+      repeat with tCounter from 1 up to pDiv-1
          put rectangle [tLeft,tTop+(tSplitHeight * tCounter),tWidth,(tCounter * tSplitHeight)+tSplitHeight] into tRect
          push tRect onto tRectList
       end repeat
@@ -906,27 +911,29 @@ public handler buildGridRectLists()
    variable tVertRectRectangle as Rectangle
 
    put the empty list into mVertRectList
+   put the empty list into mVertRectList
+
    -- put getRectListSplitHorz(my bounds,mMaxXValue+1,false) into mHorizRectList -- +1 is for the Zero position
    put getRectListSplitHorz(my bounds,mMaxXValue,false) into mHorizRectList-- +1 is for the Zero position
-   put getRectListSplitVert(my bounds,mMaxYValue,false) into tList -- +1 is for the Zero position
+   put getRectListSplitVert(my bounds,mMaxYValue,true) into tList -- +1 is for the Zero position
    ---- BUILD VERT RECT LIST
-   put 0 into tCounter
-   repeat for each element tElement in tList
-    -- repeat with tCounter from 1 up to (the number of elements in tList)
-      put tElement into tVertRectArray["VertRect"]
+   put (the number of elements in tList) into tCounter
+   -- repeat for each element tElement in tList
+   -- repeat with tNum from 1 up to tCounter
+   repeat with tNum from tCounter down to 1
+      put tList[tNum] into tVertRectArray["VertRect"]
       -- log [tNum,mHorizRectList[tNum]]
-      put tCounter into tVertRectArray["VertIndex"]
+      put mMaxYValue - tNum into tVertRectArray["VertIndex"]
       log [tVertRectArray["VertIndex"],tVertRectArray["VertRect"]]
-      add 1 to tCounter
-
       push tVertRectArray onto tVertRectList
+      -- push tVertRectArray onto front of tVertRectList
    end repeat
    put tVertRectList into mVertRectList
    -- log mVertRectList
    log [mVertRectList[1],mVertRectList[mMaxYValue]]
-   -- repeat with tCounter from 1 up to mMaxYValue
-   -- log mVertRectList[mMaxYValue]
-    -- end repeat
+   repeat with tCounter from 1 up to mMaxYValue
+      log mVertRectList[tCounter]
+    end repeat
 end handler
 
 end widget
