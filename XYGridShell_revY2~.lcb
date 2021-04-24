@@ -181,9 +181,9 @@ private handler setGridLines(pGridLines as String) returns nothing
          push tGridLineArray onto mGridLines
       end repeat
       -- log [mGridLines]
-      repeat for each element tGridLine in mGridLines
+      --  repeat for each element tGridLine in mGridLines
          -- log tGridLine
-      end repeat
+      -- end repeat
    else
       put the empty list into mGridLines
    end if
@@ -297,7 +297,7 @@ public handler OnMouseUp()
   --- post signed version:
   --- post "gridMouseUp" with [mLocalLoc[1] -(mMaxXValue/2),(mLocalLoc[2] -(mMaxYValue/2)) * -1] --  to my script object with [the click button]
   --- post unsigned version:
-  setLocalGridCoordsFromLoc(the mouse position,false,true)
+  setLocalGridCoordsFromLoc(the mouse position,false,false)
   put [mLocalLoc[1],mLocalLoc[2]] into mSelectionEndLocalLoc
   post "gridMouseUp" with [mSelectionEndLocalLoc[1],mSelectionEndLocalLoc[2]] --  to my script object with [the click button]
   post "mouseUp" with [the click button] --- to my script object with [the click button]
@@ -358,9 +358,11 @@ public handler OnMouseUp()
 
       end if
   end if
-  put [0,0] into mLocalLoc
-  put [0,0] into mSelectionStartLocalLoc
-  put [0,0] into mSelectionEndLocalLoc
+  -- put [0,0] into mLocalLoc
+  put nothing into mLocalLoc
+
+  put nothing into mSelectionStartLocalLoc
+  put nothing into mSelectionEndLocalLoc
 
   redraw all
 end handler
@@ -371,14 +373,16 @@ variable mSelectionEndLocalLoc as optional List
 public handler OnMouseDown()
    put true into mMouseButtonDown
    variable tPosition as Point
-   setLocalGridCoordsFromLoc(the mouse position,false,true) -- setLocalGridCoordsFromLoc (pLoc,pReverseX,pReverseY)
+   setLocalGridCoordsFromLoc(the mouse position,false,false) -- setLocalGridCoordsFromLoc (pLoc,pReverseX,pReverseY)
    redraw all
    post "mouseDown" with [the click button] --- to my script object with [the click button]
    --- post signed version:
    --- post "gridMouseDown" with [mLocalLoc[1] -(mMaxXValue/2),(mLocalLoc[2] -(mMaxYValue/2)) * -1] --  to my script object with [the click button]
    --- post unsigned version:
    put [mLocalLoc[1],mLocalLoc[2]] into mSelectionStartLocalLoc
-   put [mLocalLoc[1],mLocalLoc[2]] into mSelectionEndLocalLoc
+   -- put [mLocalLoc[1],mLocalLoc[2]] into mSelectionEndLocalLoc
+   put nothing into mSelectionEndLocalLoc
+
    post "gridMouseDown" with [ mLocalLoc[1], mLocalLoc[2] ]
    -- post "gridMouseDown" with [mSelectionStartLocalLoc[1],mSelectionStartLocalLoc[2]] --  to my script object with [the click button]
 end handler
@@ -389,7 +393,7 @@ public handler OnMouseMove()
    else
       variable tPosition as Point
       put the mouse position into tPosition
-      setLocalGridCoordsFromLoc(the mouse position,false,true) -- setLocalGridCoordsFromLoc (pLoc,pReverseX,pReverseY)
+      setLocalGridCoordsFromLoc(the mouse position,false,false) -- setLocalGridCoordsFromLoc (pLoc,pReverseX,pReverseY)
       put [mLocalLoc[1],mLocalLoc[2]] into mSelectionEndLocalLoc
       --variable tRoundedPosition as Point
       -- put point [0,0] into tRoundedPosition
@@ -460,21 +464,23 @@ public handler OnStopEditing()
    redraw all
 end handler
 
-
-
 public handler OnCreate()
    variable tRect as Rectangle
    variable tList as List
    variable tNum as Number
+   variable tElement as optional any
+   variable tArray as optional Array
+
    put true into mSelectionMode
    put [0,0] into mLocalLoc
    put [0,0] into mSelectionStartLocalLoc
    put [0,0] into mSelectionEndLocalLoc
    put 32 into mMaxXValue
-   put 24 into mMaxYValue
+   put 12 into mMaxYValue
 
    buildGridRectLists()
-   put (the width of (element 1 of mHorizRectList)/8) into mCircleSize
+   put (element 1 of mHorizRectList) into tElement
+   put (the width of (tElement["HorizRect"]) /8) into mCircleSize
    put 0.1 into mBorderWidth
    put the color of my foreground paint into mCircleColor
    put the color of my border paint into mStrokesColor
@@ -529,7 +535,8 @@ public handler OnPaint()
    variable tHorizCellWidth as optional Number
    variable tVertCellHeight as optional Number
 
-   put the right of (element 1 of mHorizRectList) - the left of (element 1 of mHorizRectList) into tHorizCellWidth
+   put mHorizRectList[1] into tElement
+   put the right of (tElement["HorizRect"]) - the left of (tElement["HorizRect"]) into tHorizCellWidth
    put mVertRectList[1] into tElement
    put the bottom of (tElement["VertRect"]) - the top of (tElement["VertRect"]) into tVertCellHeight
 
@@ -542,19 +549,22 @@ public handler OnPaint()
    ----------------------------- columns ----------------------------
    repeat with tNum from 1 up to (the number of elements in mHorizRectList)
    -- repeat for each element tElement in mHorizRectList
-      put rectangle path of mHorizRectList[tNum] into tPath
+      put mHorizRectList[tNum] into tElement
+      put rectangle path of (tElement["HorizRect"]) into tPath
+
       stroke tPath on this canvas
       -- Set up tFont as size 4 Arial
       put font "Arial" at size 0.5 into tFont
       -- Measure text with tFont
       --put the image bounds of text "Sample text" with tFont into tBounds
       --put the bounds of text "Sample text" with tFont into tBounds
-      fill text ((tNum-1) formatted as string) at top left of mHorizRectList[tNum] on this canvas
+      -- fill text ((tNum-1) formatted as string) at top left of mHorizRectList[tNum] on this canvas
+      fill text ((tElement["HorizIndex"]) formatted as string) at bottom of (tElement["HorizRect"]) on this canvas
    end repeat
    ----------------------------- rows -------------------------------
    repeat with tNum from 1 up to (the number of elements in mVertRectList)
-      put mVertRectList[tNum] into tVertRectArray
-      put rectangle path of tVertRectArray["VertRect"] into tPath
+      put mVertRectList[tNum] into tElement
+      put rectangle path of tElement["VertRect"] into tPath
       stroke tPath on this canvas
       -- Set up tFont as size 4 Arial
       put font "Arial" at size 0.5 into tFont
@@ -562,8 +572,7 @@ public handler OnPaint()
       --put the image bounds of text "Sample text" with tFont into tBounds
       --put the bounds of text "Sample text" with tFont into tBounds
       -- fill text ((tNum-1) formatted as string) at center of tVertRect["VertRect"] on this canvas
-      fill text (tVertRectArray["VertIndex"] formatted as string) at center of tVertRectArray["VertRect"] on this canvas
-
+      fill text (tElement["VertIndex"] formatted as string) at left of tElement["VertRect"] on this canvas
    end repeat
    ------------------------------------------------------------------ Draw Cross Hair:
    -- set the stroke width of this canvas to mBorderWidth * 3
@@ -589,8 +598,17 @@ public handler OnPaint()
    ------------------------------------------------------------------  Draw Loc Marker:
    set the stroke width of this canvas to mBorderWidth
    if mLocalLoc is not nothing then
-      put (element 1 of mLocalLoc * tHorizCellWidth ) into tHoriz
-      put (element 2 of mLocalLoc * tVertCellHeight ) into tVert
+      put (element 1 of mLocalLoc) into tHoriz
+      put element (tHoriz+1) of mHorizRectList into tElement
+      put the left of (tElement["HorizRect"]) into tHoriz
+
+      put (element 2 of mLocalLoc) into tVert
+      put element (tVert+1) of mVertRectList into tElement
+      put the top of tElement["VertRect"] into tVert
+      log [tElement["VertIndex"],tElement["VertRect"]]
+
+      -- put (element 1 of mLocalLoc * tHorizCellWidth ) into tHoriz
+      -- put (element 2 of mLocalLoc * tVertCellHeight ) into tVert
       if mDrawLineToLoc then
          -- put line path from point [my width / 2, my height / 2] to point [tHoriz,tVert] into tPath -- center is 0,0 -signed int version
          put line path from point [0,0] to point [tHoriz + (tHorizCellWidth/2) ,tVert + (tVertCellHeight/2)] into tPath -- 0,0 as is  unsigned int version
@@ -608,8 +626,17 @@ public handler OnPaint()
     if mSelectionMode then
        if mLocalLoc is not nothing then
           if mSelectionStartLocalLoc is not nothing then
-             put (element 1 of mSelectionStartLocalLoc * tHorizCellWidth ) into tHoriz
-             put (element 2 of mSelectionStartLocalLoc * tVertCellHeight ) into tVert
+             -- put (element 1 of mSelectionStartLocalLoc * tHorizCellWidth ) into tHoriz
+             --- put (element 2 of mSelectionStartLocalLoc * tVertCellHeight ) into tVert
+              put (element 1 of mSelectionStartLocalLoc) into tHoriz
+              put element (tHoriz+1) of mHorizRectList into tElement
+              put the left of (tElement["HorizRect"]) into tHoriz
+
+              put (element 2 of mSelectionStartLocalLoc) into tVert
+              put element (tVert+1) of mVertRectList into tElement
+              put the top of tElement["VertRect"] into tVert
+              log [tElement["VertIndex"],tElement["VertRect"]]
+
                if mLocalLoc[1] > mSelectionStartLocalLoc[1] then -- WE ARE IN A X TO THE LEFT OF START X
                      put tHoriz - tHorizCellWidth into tHoriz
                      put tVert + (tVertCellHeight/2) into tVert
@@ -643,11 +670,32 @@ public handler OnPaint()
    variable tMaxY as Number
    if mSelectionStartLocalLoc is not nothing then
       -- if mSelectionEndLocalLoc is not nothing then
-         put tVertCellHeight * mMaxYValue + tVertCellHeight into tMaxY
-         put ((element 1 of mSelectionStartLocalLoc * tHorizCellWidth)+tHorizCellWidth/2) into tHorizStart
-         put ((element 2 of mSelectionStartLocalLoc * tVertCellHeight)+tVertCellHeight/2) into tVertStart
-         put ((element 1 of mLocalLoc * tHorizCellWidth )+tHorizCellWidth/2)  into tHorizEnd
-         put ((element 2 of mLocalLoc * tVertCellHeight )+tVertCellHeight/2) into tVertEnd
+         -- put tVertCellHeight * mMaxYValue + tVertCellHeight into tMaxY
+         -- put ((element 1 of mSelectionStartLocalLoc * tHorizCellWidth)+tHorizCellWidth/2) into tHorizStart
+         -- put ((element 2 of mSelectionStartLocalLoc * tVertCellHeight)+tVertCellHeight/2) into tVertStart
+
+         put (element 1 of mSelectionStartLocalLoc) into tHoriz
+         put element (tHoriz+1) of mHorizRectList into tElement
+         put the left of (tElement["HorizRect"]) into tHoriz
+         put tHoriz+tHorizCellWidth/2 into tHorizStart
+
+         put (element 2 of mSelectionStartLocalLoc) into tVert
+         put element (tVert+1) of mVertRectList into tElement
+         put the top of tElement["VertRect"] into tVert
+         put tVert +tVertCellHeight/2 into tVertStart
+
+         log [tElement["VertIndex"],tElement["VertRect"]]
+                  -- put ((element 1 of mLocalLoc * tHorizCellWidth )+tHorizCellWidth/2)  into tHorizEnd
+                  -- put ((element 2 of mLocalLoc * tVertCellHeight )+tVertCellHeight/2) into tVertEnd
+         put (element 1 of mLocalLoc) into tHoriz
+         put element (tHoriz+1) of mHorizRectList into tElement
+         put the left of (tElement["HorizRect"]) into tHoriz
+         put tHoriz+tHorizCellWidth/2 into tHorizEnd
+
+         put (element 2 of mLocalLoc) into tVert
+         put element (tVert+1) of mVertRectList into tElement
+         put the top of tElement["VertRect"] into tVert
+         put tVert +tVertCellHeight/2 into tVertEnd
 
          if tHorizStart = tHorizEnd and tVertStart = tVertEnd then
             put tHorizStart - (tHorizCellWidth/2) into tHorizStart
@@ -667,7 +715,7 @@ public handler OnPaint()
             put tVertEnd + (tVertCellHeight/2) into tVertEnd
          end if
          -- put line path from point [tHorizStart,tVertStart] to point [tHorizEnd ,tVertEnd] into tPath
-         put line path from point [ tHorizStart , tMaxY - tVertStart ] to point [tHorizEnd, tVertEnd] into tPath
+         put line path from point [ tHorizStart , tVertStart ] to point [tHorizEnd, tVertEnd] into tPath
 
          set the paint of this canvas to solid paint with color [0.5,0.0,0.25,0.5]
          set the stroke width of this canvas to (tHorizCellWidth * 0.75)
@@ -678,10 +726,32 @@ public handler OnPaint()
    if mGridLines is not nothing then
       variable tGridLine as optional any
       repeat for each element tGridLine in mGridLines
-         put ((the x of tGridLine["Start"] * tHorizCellWidth )+tHorizCellWidth/2) into tHorizStart
-         put ((the y of tGridLine["Start"] * tVertCellHeight )+tVertCellHeight/2) into tVertStart
-         put ((the x of tGridLine["Stop"] * tHorizCellWidth )+tHorizCellWidth/2)  into tHorizEnd
-         put ((the y of tGridLine["Stop"] * tVertCellHeight )+tVertCellHeight/2) into tVertEnd
+
+         put (the x of tGridLine["Start"]) into tHoriz
+         put element (tHoriz+1) of mHorizRectList into tElement
+         put the left of (tElement["HorizRect"]) into tHoriz
+         put tHoriz +tHorizCellWidth/2 into tHorizStart
+
+         put (the y of tGridLine["Start"]) into tVert
+         put element (tVert+1) of mVertRectList into tElement
+         put the top of tElement["VertRect"] into tVert
+         put tVert +tVertCellHeight/2 into tVertStart
+
+         put (the x of tGridLine["Stop"]) into tHoriz
+         put element (tHoriz+1) of mHorizRectList into tElement
+         put the left of (tElement["HorizRect"]) into tHoriz
+         put tHoriz +tHorizCellWidth/2 into tHorizEnd
+
+         put (the y of tGridLine["Stop"]) into tVert
+         put element (tVert+1) of mVertRectList into tElement
+         put the top of tElement["VertRect"] into tVert
+         put tVert +tVertCellHeight/2 into tVertEnd
+
+         -- put ((the x of tGridLine["Start"] * tHorizCellWidth )+tHorizCellWidth/2) into tHorizStart
+         -- put ((the y of tGridLine["Start"] * tVertCellHeight )+tVertCellHeight/2) into tVertStart
+
+         -- put ((the x of tGridLine["Stop"] * tHorizCellWidth )+tHorizCellWidth/2)  into tHorizEnd
+         -- put ((the y of tGridLine["Stop"] * tVertCellHeight )+tVertCellHeight/2) into tVertEnd
 
          if tHorizStart = tHorizEnd and tVertStart = tVertEnd then
             put tHorizStart - (tHorizCellWidth/2) into tHorizStart
@@ -689,14 +759,14 @@ public handler OnPaint()
          else if tHorizStart > tHorizEnd and tVertStart = tVertEnd then --- we are in a cell at the at the same Y going LEFT
             put tHorizStart - (tHorizCellWidth/2) into tHorizStart
             put tHorizEnd - (tHorizCellWidth/2) into tHorizEnd
-         else if tHorizStart < tHorizEnd and tVertStart = tVertEnd then -- we are in a cell at the at the same height going RIGHT
+         else if tHorizStart < tHorizEnd and tVertStart = tVertEnd then -- we are in a cell at the at the same Y going RIGHT
             put tHorizStart - (tHorizCellWidth/2) into tHorizStart
             put tHorizEnd + (tHorizCellWidth/2) into tHorizEnd
          end if
-         if tVertStart > tVertEnd and tHorizStart = tHorizEnd then --- we are in a cell at the at the same X going UP
+         if tVertStart < tVertEnd and tHorizStart = tHorizEnd then --- we are in a cell at the at the same X going UP
             put tVertStart + (tVertCellHeight/2) into tVertStart
             put tVertEnd - (tVertCellHeight/2) into tVertEnd
-         else if tVertStart < tVertEnd and tHorizStart = tHorizEnd then -- we are in a cell at the at the same height going DOWN
+         else if tVertStart > tVertEnd and tHorizStart = tHorizEnd then -- we are in a cell at the at the same X going DOWN
             put tVertStart - (tVertCellHeight/2) into tVertStart
             put tVertEnd + (tVertCellHeight/2) into tVertEnd
          end if
@@ -723,7 +793,7 @@ public handler setLocalGridCoordsFromLoc(in pPosition as Point, in pReverseX as 
    variable tRectNum as Number
    variable tHoriz as optional Number
    variable tVert as optional Number
-   variable tVertRect as Array
+   variable tRectArray as Array
 
    if mLocalLoc is nothing then
       put [0,0] into mLocalLoc
@@ -731,17 +801,22 @@ public handler setLocalGridCoordsFromLoc(in pPosition as Point, in pReverseX as 
    put my bounds into tRect
    if pReverseX then
       repeat with tRectNum from mMaxXValue + 1 down to 1
-         put mHorizRectList[tRectNum] into tRect
+         put mHorizRectList[tRectNum] into tRectArray
+         put tRectArray["HorizRect"] into tRect
+         -- put mHorizRectList[tRectNum] into tRectArray
          if pPosition is within tRect then
-            put tRectNum -1 into tHoriz
+            -- put tRectNum -1 into tHoriz
+            put (tRectArray["VertIndex"] * -1)+mMaxXValue - 1 into tVert
             exit repeat
          end if
       end repeat
    else
       repeat with tRectNum from 1 up to mMaxXValue
-         put mHorizRectList[tRectNum] into tRect
+         put mHorizRectList[tRectNum] into tRectArray
+         put tRectArray["HorizRect"] into tRect
          if pPosition is within tRect then
-            put tRectNum -1 into tHoriz
+            -- put tRectNum -1 into tHoriz
+            put tRectArray ["HorizIndex"] into tHoriz
             exit repeat
          end if
       end repeat
@@ -751,20 +826,20 @@ public handler setLocalGridCoordsFromLoc(in pPosition as Point, in pReverseX as 
       if  mSelectionEndLocalLoc is the empty list then
          put mLocalLoc[1] into mSelectionEndLocalLoc[1]
       end if
-      if  mSelectionStartLocalLoc is the empty list then
-         put mLocalLoc[1] into mSelectionStartLocalLoc[1]
-      end if
+      -- if  mSelectionStartLocalLoc is the empty list then
+      --   put mLocalLoc[1] into mSelectionStartLocalLoc[1]
+      -- end if
    end if
 
    if pReverseY then
       --repeat with tRectNum from 1 up to (the number of elements in mVertRectList)
       repeat with tRectNum from (the number of elements in mVertRectList) down to 1
-         put mVertRectList[tRectNum] into tVertRect
-         put tVertRect["VertRect"] into tRect
+         put mVertRectList[tRectNum] into tRectArray
+         put tRectArray["VertRect"] into tRect
          if pPosition is within tRect then
             -- put mMaxYValue + 1 - tRectNum -1 into tVert
             -- put tVertRect ["VertIndex"] into tVert
-            put (tVertRect ["VertIndex"] * -1)+mMaxYValue - 1 into tVert
+            put (tRectArray["VertIndex"] * -1)+mMaxYValue - 1 into tVert
             -- put ((tNum * -1 ) + mMaxYValue) into tVertRectArray["VertIndex"]
 
             -- put tRectNum into tVert
@@ -773,11 +848,11 @@ public handler setLocalGridCoordsFromLoc(in pPosition as Point, in pReverseX as 
       end repeat
    else
       repeat with tRectNum from 1 up to (the number of elements in mVertRectList)
-         put mVertRectList[tRectNum] into tVertRect
-         put tVertRect ["VertRect"] into tRect
+         put mVertRectList[tRectNum] into tRectArray
+         put tRectArray["VertRect"] into tRect
          if pPosition is within tRect then
             -- put mMaxYValue + 1 - tRectNum -1 into tVert
-            put tVertRect ["VertIndex"] into tVert
+            put tRectArray ["VertIndex"] into tVert
             -- put tRectNum into tVert
             -- put tRectNum -1 into tVert
             exit repeat
@@ -789,9 +864,9 @@ public handler setLocalGridCoordsFromLoc(in pPosition as Point, in pReverseX as 
       if  mSelectionEndLocalLoc is the empty list then
          put mLocalLoc[2] into mSelectionEndLocalLoc[2]
       end if
-       if  mSelectionStartLocalLoc is the empty list then
-          put mLocalLoc[2] into mSelectionStartLocalLoc[2]
-       end if
+       -- if  mSelectionStartLocalLoc is the empty list then
+      --    put mLocalLoc[2] into mSelectionStartLocalLoc[2]
+       -- end if
    end if
 end handler
 
@@ -909,31 +984,43 @@ public handler buildGridRectLists()
    variable tVertSectionIteration as Number
    variable tVertSectionShift as Number
 
-   variable tVertRectList as List
-   variable tVertRectArray as Array
-   variable tVertRectNumber as Number
-   variable tVertRectRectangle as Rectangle
+   variable tRectList as List
+   variable tRectArray as Array
+   variable tRectNumber as Number
+   variable tRectRectangle as Rectangle
 
    put the empty list into mVertRectList
-   put the empty list into mVertRectList
-
+   put the empty list into mHorizRectList
+   ---------------------------------------------------------------------------------------------------------------------------- BUILD HORIZONTAL X (tall) RECTS LIST
+   put the empty list into tRectList
    -- put getRectListSplitHorz(my bounds,mMaxXValue+1,false) into mHorizRectList -- +1 is for the Zero position
-   put getRectListSplitHorz(my bounds,mMaxXValue,false) into mHorizRectList-- +1 is for the Zero position
+   put getRectListSplitHorz(my bounds,mMaxXValue,false) into tList-- +1 is for the Zero position
+   put (the number of elements in tList) into tCounter
+   repeat with tNum from 1 up to tCounter
+      put (tNum -1) into tRectArray["HorizIndex"]
+      put tList[tNum] into tRectArray["HorizRect"]
+      push tRectArray onto tRectList
+      -- push tVertRectArray onto front of tVertRectList
+   end repeat
+   put tRectList into mHorizRectList
+   ---------------------------------------------------------------------------------------------------------------------------- BUILD VERTICAL Y (wide) RECTS LIST
+   put the empty list into tRectList
+   -- put getRectListSplitVert(my bounds,mMaxYValue,true) into tList -- +1 is for the Zero position
    put getRectListSplitVert(my bounds,mMaxYValue,false) into tList -- +1 is for the Zero position
    ---- BUILD VERT RECT LIST
    put (the number of elements in tList) into tCounter
    -- repeat for each element tElement in tList
-   repeat with tNum from 1 up to tCounter
-   --repeat with tNum from tCounter down to 1
-      put ((tNum * -1 ) + mMaxYValue) into tVertRectArray["VertIndex"]
-      put tList[tNum] into tVertRectArray["VertRect"]
+   --repeat with tNum from 1 up to tCounter
+   repeat with tNum from tCounter down to 1
+      put ((tNum * -1 ) + mMaxYValue) into tRectArray["VertIndex"]
+      put tList[tNum] into tRectArray["VertRect"]
       -- log [tNum,mHorizRectList[tNum]]
-      log [tVertRectArray["VertIndex"],tVertRectArray["VertRect"]]
-
-      push tVertRectArray onto back of tVertRectList
+      -- log [tRectArray["VertIndex"],tRectArray["VertRect"]]
+      push tRectArray onto back of tRectList
       -- push tVertRectArray onto front of tVertRectList
    end repeat
-   put tVertRectList into mVertRectList
+   put tRectList into mVertRectList
+
    -- log mVertRectList
    -- log [mVertRectList[1],mVertRectList[mMaxYValue]]
    --repeat with tCounter from 1 up to mMaxYValue
