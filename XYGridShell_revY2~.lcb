@@ -480,7 +480,7 @@ public handler OnCreate()
 
    buildGridRectLists()
    put (element 1 of mHorizRectList) into tElement
-   put (the width of (tElement["HorizRect"]) /8) into mCircleSize
+   put (the width of (tElement["HorizRect"]) /4) into mCircleSize
    put 0.1 into mBorderWidth
    put the color of my foreground paint into mCircleColor
    put the color of my border paint into mStrokesColor
@@ -598,24 +598,31 @@ public handler OnPaint()
    ------------------------------------------------------------------  Draw Loc Marker:
    set the stroke width of this canvas to mBorderWidth
    if mLocalLoc is not nothing then
-      put (element 1 of mLocalLoc) into tHoriz
-      put element (tHoriz+1) of mHorizRectList into tElement
-      put the left of (tElement["HorizRect"]) into tHoriz
+      ----- GET [0,0] local point coordinate
+      put (element 1 of mHorizRectList) into tElement
+      put the left of (tElement["HorizRect"]) into tHorizStart
 
-      put (element 2 of mLocalLoc) into tVert
-      put element (tVert+1) of mVertRectList into tElement
-      put the top of tElement["VertRect"] into tVert
-      log [tElement["VertIndex"],tElement["VertRect"]]
+      put (element 1 of mVertRectList) into tElement
+      put the bottom of (tElement["VertRect"]) into tVertStart
+
+      put (element 1 of mLocalLoc) into tHorizEnd
+      put element (tHorizEnd+1) of mHorizRectList into tElement
+      put the left of (tElement["HorizRect"]) into tHorizEnd
+
+      put (element 2 of mLocalLoc) into tVertEnd
+      put element (tVertEnd+1) of mVertRectList into tElement
+      put the top of (tElement["VertRect"]) into tVertEnd
+      -- log [tElement["VertIndex"],tElement["VertRect"]]
 
       -- put (element 1 of mLocalLoc * tHorizCellWidth ) into tHoriz
       -- put (element 2 of mLocalLoc * tVertCellHeight ) into tVert
       if mDrawLineToLoc then
          -- put line path from point [my width / 2, my height / 2] to point [tHoriz,tVert] into tPath -- center is 0,0 -signed int version
-         put line path from point [0,0] to point [tHoriz + (tHorizCellWidth/2) ,tVert + (tVertCellHeight/2)] into tPath -- 0,0 as is  unsigned int version
+         put line path from point [tHorizStart,tVertStart] to point [tHorizEnd + (tHorizCellWidth/2) ,tVertEnd + (tVertCellHeight/2)] into tPath -- 0,0 as is  unsigned int version
          stroke tPath on this canvas
       end if
       set the paint of this canvas to solid paint with mCircleColor
-      put circle path centered at point [tHoriz + (tHorizCellWidth/2) ,tVert + (tVertCellHeight/2)] with radius mCircleSize into tPath
+      put circle path centered at point [tHorizStart + (tHorizCellWidth/2) ,tVertEnd + (tVertCellHeight/2)] with radius mCircleSize into tPath
       fill tPath on this canvas
 
       -- set the paint of this canvas to solid paint with color [1,0,0,0.1]
@@ -626,40 +633,47 @@ public handler OnPaint()
     if mSelectionMode then
        if mLocalLoc is not nothing then
           if mSelectionStartLocalLoc is not nothing then
-             -- put (element 1 of mSelectionStartLocalLoc * tHorizCellWidth ) into tHoriz
-             --- put (element 2 of mSelectionStartLocalLoc * tVertCellHeight ) into tVert
-              put (element 1 of mSelectionStartLocalLoc) into tHoriz
-              put element (tHoriz+1) of mHorizRectList into tElement
-              put the left of (tElement["HorizRect"]) into tHoriz
 
-              put (element 2 of mSelectionStartLocalLoc) into tVert
-              put element (tVert+1) of mVertRectList into tElement
-              put the top of tElement["VertRect"] into tVert
-              log [tElement["VertIndex"],tElement["VertRect"]]
+             put (element 1 of mSelectionStartLocalLoc) into tHoriz
+             put element (tHoriz+1) of mHorizRectList into tElement
+             put the left of (tElement["HorizRect"]) into tHorizStart
 
-               if mLocalLoc[1] > mSelectionStartLocalLoc[1] then -- WE ARE IN A X TO THE LEFT OF START X
-                     put tHoriz - tHorizCellWidth into tHoriz
-                     put tVert + (tVertCellHeight/2) into tVert
-               else if (mLocalLoc[1] < mSelectionStartLocalLoc[1]) then -- WE ARE IN A X TO THE TO THE RIGHT OF START X
-                     put tHoriz into tHoriz
-                     put tVert + (tVertCellHeight/2) into tVert
-               else if (mLocalLoc[1] = mSelectionStartLocalLoc[1]) then -- WE ARE IN THE SAME X AS THE START X
-                     put tHoriz into tHoriz
-                     put tVert + (tVertCellHeight/2) into tVert
-               else if mLocalLoc[2] < mSelectionStartLocalLoc[2] then --- WE ARE IN A Y ABOVE THE START  Y
-                     put tHoriz + (tHorizCellWidth/2) into tHoriz
-                     put tVert  - (tVertCellHeight/2) into tVert
-               else if (mLocalLoc[2] > mSelectionStartLocalLoc[2]) then --- WE ARE IN A Y BELLOW THE START Y
-                     put tHoriz + (tHorizCellWidth/2) into tHoriz
-                     put tVert + (tVertCellHeight/2) into tVert
-               else if (mLocalLoc[2] = mSelectionStartLocalLoc[2]) then --- WE ARE IN THE SAME Y AS THE START Y
-                     put tHoriz + (tHorizCellWidth/2) into tHoriz
-                     put tVert into tVert
-               end if
-               --else if mLocalLoc[1]=mSelectionStartLocalLoc[1] and mLocalLoc[2]=mSelectionStartLocalLoc[2] then
-               --   put tVert + tVertCellHeight into tVert
-               -- end if
-            put rectangle path of rectangle [(mSelectionStartLocalLoc[1] * tHorizCellWidth) ,(mSelectionStartLocalLoc[2] * tVertCellHeight) , tHoriz, tVert] into tPath
+             put (element 2 of mSelectionStartLocalLoc) into tVert
+             put element (tVert+1) of mVertRectList into tElement
+             put the top of tElement["VertRect"] into tVertStart
+
+             put (element 1 of mLocalLoc) into tHoriz
+             put element (tHoriz+1) of mHorizRectList into tElement
+             put the right of (tElement["HorizRect"]) into tHorizEnd
+
+             if tHorizStart > tHorizEnd then -- we are in a cell going LEFT
+                --- SWAP START & STOP
+                put tHorizStart into tHoriz
+                put tHorizEnd into tHorizStart
+                put tHoriz into tHorizEnd
+                put tHorizStart - tHorizCellWidth into tHorizStart
+                put tHorizEnd + tHorizCellWidth into tHorizEnd
+            end if
+            if tHorizStart = tHorizEnd then
+               put tHorizStart - tHorizCellWidth into tHorizStart
+               put tHorizEnd + tHorizCellWidth into tHorizEnd
+            end if
+             put (element 2 of mLocalLoc) into tVert
+             put element (tVert+1) of mVertRectList into tElement
+             put the bottom of tElement["VertRect"] into tVertEnd
+            if tVertStart > tVertEnd then -- we are in a cell going UP
+               --- SWAP START & STOP
+               put tVertStart into tVert
+               put tVertEnd into tVertStart
+               put tVert into tVertEnd
+               put tVertStart - tVertCellHeight into tVertStart
+               put tVertEnd + tVertCellHeight into tVertEnd
+            end if
+            if tVertStart = tVertEnd then
+               put tVertStart + tVertCellHeight into tVertStart
+               put tVertEnd - tVertCellHeight into tVertEnd
+            end if
+            put rectangle path of rectangle [tHorizStart,tVertStart,tHorizEnd,tVertEnd] into tPath
             set the paint of this canvas to solid paint with color [0,1,0,0.25]
             fill tPath on this canvas
          end if
@@ -670,10 +684,10 @@ public handler OnPaint()
    variable tMaxY as Number
    if mSelectionStartLocalLoc is not nothing then
       -- if mSelectionEndLocalLoc is not nothing then
+
          -- put tVertCellHeight * mMaxYValue + tVertCellHeight into tMaxY
          -- put ((element 1 of mSelectionStartLocalLoc * tHorizCellWidth)+tHorizCellWidth/2) into tHorizStart
          -- put ((element 2 of mSelectionStartLocalLoc * tVertCellHeight)+tVertCellHeight/2) into tVertStart
-
          put (element 1 of mSelectionStartLocalLoc) into tHoriz
          put element (tHoriz+1) of mHorizRectList into tElement
          put the left of (tElement["HorizRect"]) into tHoriz
@@ -684,9 +698,9 @@ public handler OnPaint()
          put the top of tElement["VertRect"] into tVert
          put tVert +tVertCellHeight/2 into tVertStart
 
-         log [tElement["VertIndex"],tElement["VertRect"]]
-                  -- put ((element 1 of mLocalLoc * tHorizCellWidth )+tHorizCellWidth/2)  into tHorizEnd
-                  -- put ((element 2 of mLocalLoc * tVertCellHeight )+tVertCellHeight/2) into tVertEnd
+         -- log [tElement["VertIndex"],tElement["VertRect"]]
+         -- put ((element 1 of mLocalLoc * tHorizCellWidth )+tHorizCellWidth/2)  into tHorizEnd
+         -- put ((element 2 of mLocalLoc * tVertCellHeight )+tVertCellHeight/2) into tVertEnd
          put (element 1 of mLocalLoc) into tHoriz
          put element (tHoriz+1) of mHorizRectList into tElement
          put the left of (tElement["HorizRect"]) into tHoriz
@@ -933,7 +947,7 @@ public handler getRectListSplitVert(in pRect, in pDiv as Integer,in pReverseOrde
       put rectangle [tLeft,tTop,tWidth,tSplitHeight] into tRect -- 0 rect at top
       push tRect onto back of tRectList -- push 0,0 rect
       put (the number of elements in tRectList) into tNum
-      log ["VertRects Generated",tNum]
+      -- log ["VertRects Generated",tNum]
       repeat with tNum from (the number of elements in tRectList) down to 1
       -- repeat with tNum from 1 up to pDiv
       -- repeat with tNum from (the number of elements in tRectList) down to 1
