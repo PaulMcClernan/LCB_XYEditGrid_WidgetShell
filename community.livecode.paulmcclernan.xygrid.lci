@@ -18,8 +18,12 @@ import module community.livecode.paulmcclernan.xygrid
   handler setBorderWidth(in pBorderWidth as Number) returns nothing
   handler setMaxXValue(in pBorderWidth as Number) returns nothing
   handler getMaxXValue() returns Number
+  handler setMinXValue(in pBorderWidth as Number) returns nothing
+  handler getMinXValue() returns Number
   handler setMaxYValue(in pBorderWidth as Number) returns nothing
   handler getMaxYValue() returns Number
+  handler setMinYValue(in pBorderWidth as Number) returns nothing
+  handler getMinYValue() returns Number
   handler setCircleSize(in pBorderWidth as Number) returns nothing
   handler OnMouseUp() returns optional any
   handler OnMouseDown() returns optional any
