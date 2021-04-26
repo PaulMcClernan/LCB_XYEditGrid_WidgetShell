@@ -25,11 +25,20 @@ import module community.livecode.paulmcclernan.xygrid
   handler setMinYValue(in pBorderWidth as Number) returns nothing
   handler getMinYValue() returns Number
   handler setCircleSize(in pBorderWidth as Number) returns nothing
+  variable mGridEditMode as String
+  handler setGridEditMode(in pColor as String) returns nothing
+  handler getGridEditMode() returns String
+  handler setSelectMode(in pBool as Boolean) returns nothing
+  handler setDrawMode(in pBool as Boolean) returns nothing
   handler OnMouseUp() returns optional any
   handler OnMouseDown() returns optional any
   handler OnMouseMove() returns optional any
   handler OnMouseCancel() returns optional any
   handler OnMouseScroll(in deltaX as optional any, in deltaY as optional any) returns optional any
+  handler OnActionKeyPress(in pColor as String) returns nothing
+  handler OnKeyPress(in pColor as String) returns nothing
+  handler OnFocusEnter() returns nothing
+  handler OnFocusLeave() returns nothing
   handler OnSave(out rProperties as Array) returns optional any
   handler OnLoad(in pProperties as Array) returns optional any
   handler OnStopEditing() returns optional any

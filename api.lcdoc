@@ -24,6 +24,10 @@ Name: gridMouseDown
 
 Type: message
 
+Name: keyDown
+
+Type: message
+
 Name: mouseDown
 
 Type: message
