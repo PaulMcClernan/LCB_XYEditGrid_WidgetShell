@@ -585,7 +585,7 @@ public handler OnMouseDown()
                   put true into tGridLine["StartIsSelected"]
                   -- put true into tGridLine["StartIsSelected"]
                end if
-<<<<<<< Updated upstream
+-- --- <<<<<<< Updated upstream
                if (the y of tGridLine["Start"] = mSelectionStartLocalLoc[2]) and (mSelectionStartLocalLoc[1] >= the x of tGridLine["Start"]) and (mSelectionStartLocalLoc[1] <= the x of tGridLine["Stop"]) then
                   log "Clicked at within Gridline"
                   put true into tGridLine["IsSelected"]
@@ -595,7 +595,7 @@ public handler OnMouseDown()
                   -- put false into tGridLine["IsSelected"]
                 end if
 
-=======
+---
 
                if (the x of tGridLine["Start"] >= mSelectionStartLocalLoc[1]) and (the x of tGridLine["Stop"] <= mSelectionEndLocalLoc[1]) and \
                   (the y of tGridLine["Start"] = mSelectionStartLocalLoc[2]) then
@@ -615,7 +615,8 @@ public handler OnMouseDown()
                else
                   -- put false into tGridLine["IsSelected"]
                end if
->>>>>>> Stashed changes
+--- >>>>>>> Stashed changes
+
                put tGridLine into element tNum of mGridLines
 
             end repeat
@@ -661,11 +662,12 @@ public handler OnMouseMove()
       -- setLocalGridCoordsFromLoc(tRoundedPosition)
       if mSelectionMode then
          if mSelectionStartLocalLoc is not nothing then
-<<<<<<< Updated upstream
+--- <<<<<<< Updated upstream
             if mGridLines is not nothing then  ---------------------------------- Scan X range of any mGridLines & create selection rect
-=======
+---
             if mGridLines is not nothing then  ---------------------------------- Scan range for mGridLines & create selection rect
->>>>>>> Stashed changes
+--- >>>>>>> Stashed changes
+
 
                put mHorizRectList[1] into tElement
                put the right of (tElement["HorizRect"]) - the left of (tElement["HorizRect"]) into tHorizCellWidth
@@ -734,11 +736,12 @@ public handler OnMouseMove()
                   put the top of tElement["VertRect"] into tVert
                end if
 
-<<<<<<< Updated upstream
+--- <<<<<<< Updated upstream
                put point [tHoriz,tVert] into tPoint
-=======
+---
                put point [mGridMouseLoc[1],mGridMouseLoc[2]] into tPoint
->>>>>>> Stashed changes
+--- >>>>>>> Stashed changes
+
 
                if tPoint is within mSelectionRect then
                   log ["Found GridLine Start Within Selection Range",tGridLine["Start"],mSelectionRect]
@@ -790,7 +793,7 @@ public handler OnMouseMove()
 
          end if
       end if
-
+   end if
       redraw all
       post "mouseMove" with [the x of tPosition, the y of tPosition]
       -- post "gridMouseMove" with [ the rounded of ( mGridMouseLoc[1] (mMaxValue/2) ), the rounded of ( (mGridMouseLoc[2] (mMaxValue/2)) * -1 )]
@@ -1038,11 +1041,12 @@ public handler OnPaint()
          stroke tPath on this canvas
       end if
       set the paint of this canvas to solid paint with mCircleColor
-<<<<<<< Updated upstream
+--- <<<<<<< Updated upstream
       put circle path centered at point [tHorizStart + (tHorizCellWidth/2) ,tVertEnd + (tVertCellHeight/2)] with radius (mCircleSize *0.25) into tPath
-=======
+---
       put circle path centered at point [tHorizEnd + (tHorizCellWidth/2) ,tVertEnd + (tVertCellHeight/2)] with radius (mCircleSize *0.5) into tPath
->>>>>>> Stashed changes
+--- >>>>>>> Stashed changes
+
       fill tPath on this canvas
       -- set the paint of this canvas to solid paint with color [1,0,0,0.1]
       -- put rectangle path of rectangle [mSelectionStartLocalLoc[1] * tHorizCellWidth , mSelectionStartLocalLoc[2] * tVertCellHeight, tHoriz, tVert] into tPath
