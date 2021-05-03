@@ -447,12 +447,22 @@ end handler
 private variable mSnapBackToZero as Boolean
 property snapBackToZero get mSnapBackToZero set mSnapBackToZero
 metadata snapBackToZero.editor is "com.livecode.pi.boolean"
-metadata snapBackToZero.default is "true" -- ten octaves worth ;-)
+metadata snapBackToZero.default is "true"
 
 private variable mDrawLineToLoc as Boolean
 property drawLineToLoc get mDrawLineToLoc set mDrawLineToLoc
 metadata drawLineToLoc.editor is "com.livecode.pi.boolean"
-metadata drawLineToLoc.default is "true" -- ten octaves worth ;-)
+metadata drawLineToLoc.default is "true"
+
+private variable mDrawHorizRectNumbers as Boolean
+property drawHorizRectNumbers get mDrawHorizRectNumbers set mDrawHorizRectNumbers
+metadata drawHorizRectNumbers.editor is "com.livecode.pi.boolean"
+metadata drawHorizRectNumbers.default is "false"
+
+private variable mDrawVertRectNumbers as Boolean
+property drawVertRectNumbers get mDrawVertRectNumbers set mDrawVertRectNumbers
+metadata drawVertRectNumbers.editor is "com.livecode.pi.boolean"
+metadata drawVertRectNumbers.default is "true"
 -----------------------------------------------------------------------------------------------  Mouse & Key Event Handlers --------------------------------------------------------------------------------------
 private variable mMouseButtonDown as Boolean
 
@@ -871,26 +881,30 @@ public handler OnPaint()
       put rectangle path of (tElement["HorizRect"]) into tPath
 
       stroke tPath on this canvas
-      -- Set up tFont as size 4 Arial
-      put font "Arial" at size 0.25 into tFont
-      -- Measure text with tFont
-      --put the image bounds of text "Sample text" with tFont into tBounds
-      --put the bounds of text "Sample text" with tFont into tBounds
-      -- fill text ((tNum-1) formatted as string) at top left of mHorizRectList[tNum] on this canvas
-      fill text ((tElement["HorizIndex"]) formatted as string) at bottom of (tElement["HorizRect"]) on this canvas
+      if mDrawHorizRectNumbers then
+         -- Set up tFont as size 4 Arial
+         put font "Arial" at size 0.25 into tFont
+         -- Measure text with tFont
+         --put the image bounds of text "Sample text" with tFont into tBounds
+         --put the bounds of text "Sample text" with tFont into tBounds
+         -- fill text ((tNum-1) formatted as string) at top left of mHorizRectList[tNum] on this canvas
+         fill text ((tElement["HorizIndex"]) formatted as string) at bottom of (tElement["HorizRect"]) on this canvas
+      end if
    end repeat
    ----------------------------- rows -------------------------------
    repeat with tNum from 1 up to (the number of elements in mVertRectList)
       put mVertRectList[tNum] into tElement
       put rectangle path of tElement["VertRect"] into tPath
       stroke tPath on this canvas
-      -- Set up tFont as size 4 Arial
-      put font "Arial" at size 0.25 into tFont
-      -- Measure text with tFont
-      --put the image bounds of text "Sample text" with tFont into tBounds
-      --put the bounds of text "Sample text" with tFont into tBounds
-      -- fill text ((tNum-1) formatted as string) at center of tVertRect["VertRect"] on this canvas
-      fill text (tElement["VertIndex"] formatted as string) at left of tElement["VertRect"] on this canvas
+      if mDrawVertRectNumbers then
+         -- Set up tFont as size 4 Arial
+         put font "Arial" at size 0.25 into tFont
+         -- Measure text with tFont
+         --put the image bounds of text "Sample text" with tFont into tBounds
+         --put the bounds of text "Sample text" with tFont into tBounds
+         -- fill text ((tNum-1) formatted as string) at center of tVertRect["VertRect"] on this canvas
+         fill text (tElement["VertIndex"] formatted as string) at left of tElement["VertRect"] on this canvas
+      end if
    end repeat
    ------------------------------------------------------------------ Draw Cross Hair:
    -- set the stroke width of this canvas to mBorderWidth * 3
@@ -900,7 +914,7 @@ public handler OnPaint()
    -- put line path from point [0,my height / 2] to point [my width,my height/2] into tPath
    -- stroke tPath on this canvas
    ------------------------------------------------------------------ Quarter Horizontal Markers:
-    set the stroke width of this canvas to mBorderWidth * 8
+    set the stroke width of this canvas to mBorderWidth * 20
     set the paint of this canvas to solid paint with mStrokesColor
     put line path from point [mHorizCellWidth * (mMaxXValue * 0.25), (mMinYValue * mVertCellHeight)] to point [mHorizCellWidth *(mMaxXValue * 0.25),my height] into tPath
     stroke tPath on this canvas
@@ -909,7 +923,7 @@ public handler OnPaint()
     put line path from point [mHorizCellWidth * (mMaxXValue * 0.75), (mMinYValue * mVertCellHeight)] to point [mHorizCellWidth *(mMaxXValue * 0.75),my height] into tPath
     stroke tPath on this canvas
     ------------------------------------------------------------------ Eighths Horizontal Markers:
-    set the stroke width of this canvas to mBorderWidth * 4
+    set the stroke width of this canvas to mBorderWidth * 10
     set the paint of this canvas to solid paint with mStrokesColor
     put line path from point [mHorizCellWidth * (mMaxXValue * .125), (mMinYValue * mVertCellHeight)] to point [mHorizCellWidth *(mMaxXValue * 0.125),my height] into tPath
     stroke tPath on this canvas
@@ -921,7 +935,7 @@ public handler OnPaint()
     stroke tPath on this canvas
    -----------------------------------------------------------------Draw Outer Border:
    set the paint of this canvas to solid paint with mStrokesColor
-   set the stroke width of this canvas to (mBorderWidth * 16)
+   set the stroke width of this canvas to (mBorderWidth * 30)
    put my bounds into tRect
    stroke rectangle path of tRect on this canvas
    ------------------------------------------------------------------  Draw Loc Markers
