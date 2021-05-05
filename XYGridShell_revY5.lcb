@@ -463,6 +463,57 @@ private variable mDrawVertRectNumbers as Boolean
 property drawVertRectNumbers get mDrawVertRectNumbers set mDrawVertRectNumbers
 metadata drawVertRectNumbers.editor is "com.livecode.pi.boolean"
 metadata drawVertRectNumbers.default is "true"
+
+public handler OnSave(out rProperties as Array)
+   put mBorderWidth into rProperties["borderWidth"]
+   put mDrawHorizRectNumbers into rProperties["drawHorizRectNumbers"]
+   put mDrawVertRectNumbers into rProperties["drawVertRectNumbers"]
+   put mMinXValue into rProperties["minXValue"]
+   put mMinYValue into rProperties["minYValue"]
+   put mMaxXValue into rProperties["maxXValue"]
+   put mMaxYValue into rProperties["maxYValue"]
+
+   put colorToString(mStrokesColor, false) into rProperties["strokesColor"]
+   put colorToString(mCircleColor, false) into rProperties["circleColor"]
+   -- put colorToString(mHiliteColor, true) into rProperties["hiliteColor"]
+end handler
+-- this handler is called when the widget is loaded
+public handler OnLoad(in pProperties as Array)
+   variable tTempList
+   put the keys of pProperties into tTempList
+   log [tTempList]
+
+   if "drawHorizRectNumbers" is in tTempList then
+      put pProperties["drawHorizRectNumbers"] into mDrawHorizRectNumbers
+   end if
+   if "drawVertRectNumbers" is in tTempList then
+      put pProperties["drawVertRectNumbers"] into mDrawVertRectNumbers
+   end if
+   if "minXValue" is in tTempList then
+      put pProperties["minXValue"] into mMinXValue
+   end if
+   if "maxXValue" is in tTempList then
+      put pProperties["maxXValue"] into mMaxXValue
+   end if
+   if "minYValue" is in tTempList then
+      put pProperties["minYValue"] into mMinYValue
+   end if
+   if "maxYValue" is in tTempList then
+      put pProperties["maxYValue"] into mMaxYValue
+   end if
+
+   put pProperties["borderWidth"] into mBorderWidth
+   put stringToColor(pProperties["strokesColor"]) into mStrokesColor
+   put stringToColor(pProperties["circleColor"]) into mCircleColor
+   -- OnGeometryChanged()
+   redraw all
+end handler
+
+public handler OnStopEditing()
+   OnGeometryChanged()
+   redraw all
+end handler
+
 -----------------------------------------------------------------------------------------------  Mouse & Key Event Handlers --------------------------------------------------------------------------------------
 private variable mMouseButtonDown as Boolean
 
@@ -524,14 +575,30 @@ public handler OnMouseDown()
                --- repeat for each element tGridLine in mGridLines
                put element tNum of mGridLines into tGridLine
 
-               put element ((the x of tGridLine["Start"])+1) of mHorizRectList into tElement
-               put (the left of tElement["HorizRect"]) into tHorizStart
-               put element ((the y of tGridLine["Start"])+1) of mVertRectList into tElement
-               put (the top of tElement["VertRect"]) into tVertStart
-               put element ((the x of tGridLine["Stop"])+1) of mHorizRectList into tElement
-               put (the right of tElement["HorizRect"]) + mHorizCellWidth into tHorizEnd
-               put element ((the y of tGridLine["Stop"])+1) of mVertRectList into tElement
-               put (the bottom of tElement["VertRect"]) into tVertEnd
+               if ((the x of tGridLine["Start"])+1 < mMaxXValue+1) then
+                  put element ((the x of tGridLine["Start"])+1) of mHorizRectList into tElement
+                  put (the left of tElement["HorizRect"]) into tHorizStart
+               else
+                  next repeat
+               end if
+               if ((the y of tGridLine["Start"])+1 < mMaxYValue+1) then
+                  put element ((the y of tGridLine["Start"])+1) of mVertRectList into tElement
+                  put (the top of tElement["VertRect"]) into tVertStart
+               else
+                  next repeat
+               end if
+               if ((the x of tGridLine["Stop"])+1 < mMaxXValue+1) then
+                  put element ((the x of tGridLine["Start"])+1) of mHorizRectList into tElement
+                  put (the right of tElement["HorizRect"]) + mHorizCellWidth into tHorizEnd
+               else
+                  next repeat
+               end if
+               if ((the y of tGridLine["Stop"])+1 < mMaxYValue+1) then
+                  put element ((the y of tGridLine["Stop"])+1) of mVertRectList into tElement
+                  put (the bottom of tElement["VertRect"]) into tVertEnd
+               else
+                  next repeat
+               end if
 
                put rectangle [tHorizStart,tVertStart,tHorizEnd, tVertEnd ] into tRect
 
@@ -771,26 +838,6 @@ public handler OnFocusLeave() returns nothing
    log ["FocusLeave"]
 end handler
 -----------------------------------------------------------------------------------------------  Creating & Drawing --------------------------------------------------------------------------------------
-public handler OnSave(out rProperties as Array)
-   put mBorderWidth into rProperties["borderWidth"]
-   put colorToString(mStrokesColor, false) into rProperties["strokesColor"]
-   put colorToString(mCircleColor, false) into rProperties["circleColor"]
-   -- put colorToString(mHiliteColor, true) into rProperties["hiliteColor"]
-end handler
--- this handler is called when the widget is loaded
-public handler OnLoad(in pProperties as Array)
-   -- log [pProperties] --> logging this doesn't seem to work! -- moreover, it silently fails making debugging difficult
-   put pProperties["borderWidth"] into mBorderWidth
-   put stringToColor(pProperties["strokesColor"]) into mStrokesColor
-   put stringToColor(pProperties["circleColor"]) into mCircleColor
-   -- OnGeometryChanged()
-   redraw all
-end handler
-
-public handler OnStopEditing()
-   OnGeometryChanged()
-   redraw all
-end handler
 
 public handler OnCreate()
    variable tRect as Rectangle
@@ -798,7 +845,7 @@ public handler OnCreate()
    variable tNum as Number
    variable tElement as optional any
    variable tArray as optional Array
-   put 64 into mMaxXValue
+   put 256 into mMaxXValue
    put 0 into mMinXValue
    put 24 into mMaxYValue
    put 0 into mMinYValue
