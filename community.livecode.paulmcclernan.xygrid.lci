@@ -12,6 +12,7 @@ import module community.livecode.paulmcclernan.xygrid
   use com.livecode.type
   use com.livecode.engine
   use com.livecode.char
+  use com.livecode.byte
   handler getCircleColor() returns String
   handler setBorderColor(in pColor as String) returns nothing
   handler getBorderColor() returns String
@@ -53,4 +54,5 @@ import module community.livecode.paulmcclernan.xygrid
   handler getRectListSplitHorz(in pRect as optional any, in pDiv as Number, in pReverseOrder as Boolean) returns List
   handler getRectListSplitVert(in pRect as optional any, in pDiv as Number, in pReverseOrder as Boolean) returns List
   handler buildGridRectLists() returns optional any
+  handler hitTestPath(in pPoint as Point, in pPath as Path, in pStrokeWidth as Number, in pWithin as Boolean) returns Boolean
 end module
