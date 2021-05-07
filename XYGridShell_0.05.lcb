@@ -190,8 +190,13 @@ private handler setGridLines(pGridLines as String) returns nothing
             put tGridlineFromPoint into tGridLineArray["Start"]
             put tGridlineToPoint into tGridLineArray["Stop"]
          end if
-         put rectangle path of rectangle [the x of tGridLineArray["Start"],the y of tGridLineArray["Start"], the x of tGridLineArray["Stop"], (the y of tGridLineArray["Stop"]) + mVertCellHeight] into tPath
-         log tPath
+         put polyline path with points [ point [ (the x of tGridLineArray["Start"]) * mHorizCellWidth, ( mMaxYValue - (the y of tGridLineArray["Start"]) ) * mVertCellHeight ],\
+            point [ ((the x of tGridLineArray["Stop"]) * mHorizCellWidth), (mMaxYValue - (the y of tGridLineArray["Stop"]) ) * mVertCellHeight ],\
+            point [ ((the x of tGridLineArray["Stop"]) * mHorizCellWidth) + mHorizCellWidth, ( ( mMaxYValue - (the y of tGridLineArray["Stop"]) ) * mVertCellHeight ) - mVertCellHeight ],\
+            point [ ((the x of tGridLineArray["Start"]) * mHorizCellWidth) + mHorizCellWidth , ( ( mMaxYValue - (the y of tGridLineArray["Start"]) ) * mVertCellHeight ) - mVertCellHeight ] ] into tPath
+         -- put rectangle path of rectangle [the x of tGridLineArray["Start"],the y of tGridLineArray["Start"], the x of tGridLineArray["Stop"] + mHorizCellWidth, (the y of tGridLineArray["Stop"]) + mVertCellHeight] into tPath
+         put tPath into tGridLineArray["LineShapePath"]
+         log [ "GridLineArray LineShapePath", tGridLineArray["LineShapePath"] ]
          put false into tGridLineArray["StartIsSelected"]
          put false into tGridLineArray["EndIsSelected"]
          put false into tGridLineArray["IsSelected"]
@@ -558,6 +563,7 @@ public handler OnMouseDown()
    variable tVert as Number
    variable tRect as Rectangle
    variable tPoint as Point
+   variable tClickPosition as Point
    variable tPath as Path
    variable tNum as Number
 
@@ -565,8 +571,7 @@ public handler OnMouseDown()
    put nothing into mSelectionStartLocalLoc
    put nothing into mSelectionEndLocalLoc
    put nothing into mSelectionRect
-
-   variable tPosition as Point
+   put point[0,0] into tClickPosition
    setLocalGridCoordsFromLoc(the mouse position,false,false) -- setLocalGridCoordsFromLoc (pLoc,pReverseX,pReverseY)
    post "mouseDown" with [the click button] --- to my script object with [the click button]
    --- post signed version:
@@ -574,11 +579,13 @@ public handler OnMouseDown()
    --- post unsigned version:
    put [mGridMouseLoc[1],mGridMouseLoc[2]] into mSelectionStartLocalLoc
    put [mGridMouseLoc[1],mGridMouseLoc[2]] into mSelectionEndLocalLoc
+
    put element (mGridMouseLoc[1])+1 of mHorizRectList into tElement
    put the left of tElement["HorizRect"] into tHorizStart
-
+   set the x of tClickPosition to tHorizStart + (mHorizCellWidth/2)
    put element (mGridMouseLoc[2])+1 of mVertRectList into tElement
    put the top of (tElement["VertRect"])+1 into tVertStart
+   set the y of tClickPosition to tVertStart + (mVertCellHeight/2)
 
    put rectangle [ tHorizStart, tVertStart, \
       tHorizStart + mHorizCellWidth, tVertStart + mVertCellHeight ] into mSelectionRect
@@ -607,7 +614,7 @@ public handler OnMouseDown()
                end if
                if ((the x of tGridLine["Stop"])+1 < mMaxXValue+1) then
                   put element ((the x of tGridLine["Start"])+1) of mHorizRectList into tElement
-                  put (the right of tElement["HorizRect"]) + mHorizCellWidth into tHorizEnd
+                  put (the right of tElement["HorizRect"]) into tHorizEnd
                else
                   next repeat
                end if
@@ -621,19 +628,22 @@ public handler OnMouseDown()
                put rectangle [tHorizStart,tVertStart,tHorizEnd,tVertEnd] into tRect
                -- put rectangle path of tRect into tPath
 
-               put element (mSelectionStartLocalLoc[1] + 1) of mHorizRectList into tElement
-               put (the left of tElement["HorizRect"]) + (mHorizCellWidth/2) into tHoriz
+               -- put element (mSelectionStartLocalLoc[1] + 1) of mHorizRectList into tElement
+               -- put (the left of tElement["HorizRect"]) + (mHorizCellWidth/2) into tHoriz
+               -- put element (mSelectionStartLocalLoc[2] +1) of mVertRectList into tElement
+               -- put (the bottom of tElement["VertRect"]) + (mVertCellHeight/2) into tVert
 
-               put element (mSelectionStartLocalLoc[2] +1) of mVertRectList into tElement
-               put (the bottom of tElement["VertRect"]) - (mVertCellHeight/2) into tVert
-
-
-               if point [tHoriz,tVert] is within tRect then
-                  log ["point within grid line clicked",tHoriz,tVert,tRect]
+               if tClickPosition is within tRect then
+               -- if point [tHoriz,tVert] is within tRect then
+                  log ["point within grid line clicked",tClickPosition,tRect]
+                  -- log ["point within grid line clicked",tHoriz,tVert,tRect]
                   put true into tGridLine["IsSelected"]
                end if
-               put line path from point [tHorizStart, tVertStart + (mVertCellHeight/2)] to point [tHorizEnd, tVertEnd - (mVertCellHeight/2)] into tPath
-               if hitTestPath( the mouse position , tPath, mVertCellHeight, false) then
+
+               -- put line path from point [tHorizStart, tVertStart + (mVertCellHeight/2)] to point [tHorizEnd - (mVertCellHeight/2), tVertEnd -(mVertCellHeight/2)] into tPath
+
+               if hitTestPath( tClickPosition, tGridLine["LineShapePath"], mVertCellHeight, false) then
+               -- if hitTestPath( point[tHoriz,tVert] , tPath, mVertCellHeight, false) then
                -- if hitTestPath( point[tHoriz,tVert], tPath, mVertCellHeight, true) then
                   -- the mouse position
                   -- if hitTestPath( point[tHoriz,tVert], tPath, mHorizCellWidth * 0.90, false) then
@@ -643,7 +653,8 @@ public handler OnMouseDown()
                   -- put true into tGridLine["StartIsSelected"]
                   put true into tGridLine["IsSelected"]
                   -- put true into tGridLine["EndIsSelected"]
-                  log "Clicked in middle of a Gridline"
+                  log ["Clicked in middle of a Gridline", tClickPosition, tGridLine["LineShapePath"] ]
+
                end if
 
                if (the x of tGridLine["Stop"]) = mGridMouseLoc[1] and (the y of tGridLine["Stop"]) = mGridMouseLoc[2] then
@@ -1213,6 +1224,10 @@ public handler OnPaint()
          set the stroke width of this canvas to mVertCellHeight * 0.95
          put line path from point [tHorizStart,tVertStart] to point [tHorizEnd,tVertEnd] into tPath
          stroke tPath on this canvas
+
+         set the paint of this canvas to solid paint with color [0.5,0.125,0.5,0.5]
+         put tGridLine["LineShapePath"] into tPath
+         fill tPath on this canvas
       end repeat
    end if
 end handler
