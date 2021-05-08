@@ -137,7 +137,10 @@ private handler setGridLines(pGridLines as String) returns nothing
    variable tGridLineArray as Array
    variable tNumA as Number
    variable tNumB as Number
-
+   variable tHorizStart as Number
+   variable tHorizEnd as Number
+   variable tVertStart as Number
+   variable tVertEnd as Number
    variable tNumStr as String
    variable tGridLinesList as List
    variable tGridLine as optional any
@@ -175,6 +178,7 @@ private handler setGridLines(pGridLines as String) returns nothing
             set the y of tGridlineToPoint to (tPointStrList[2] parsed as number)
             put tGridlineToPoint into tGridLineArray["Stop"]
          end if
+
          if the x of tGridlineFromPoint > the x of tGridlineToPoint then -- End is to the left before the begining
             -- swap start & stop x and y ---
             put the x of tGridlineFromPoint into tNumA
@@ -190,10 +194,25 @@ private handler setGridLines(pGridLines as String) returns nothing
             put tGridlineFromPoint into tGridLineArray["Start"]
             put tGridlineToPoint into tGridLineArray["Stop"]
          end if
-         put polyline path with points [ point [ (the x of tGridLineArray["Start"]) * mHorizCellWidth, ( mMaxYValue - (the y of tGridLineArray["Start"]) ) * mVertCellHeight ],\
-            point [ ((the x of tGridLineArray["Stop"]) * mHorizCellWidth), (mMaxYValue - (the y of tGridLineArray["Stop"]) ) * mVertCellHeight ],\
-            point [ ((the x of tGridLineArray["Stop"]) * mHorizCellWidth) + mHorizCellWidth, ( ( mMaxYValue - (the y of tGridLineArray["Stop"]) ) * mVertCellHeight ) - mVertCellHeight ],\
-            point [ ((the x of tGridLineArray["Start"]) * mHorizCellWidth) + mHorizCellWidth , ( ( mMaxYValue - (the y of tGridLineArray["Start"]) ) * mVertCellHeight ) - mVertCellHeight ] ] into tPath
+
+         put ( the x of tGridLineArray["Start"] * mHorizCellWidth) into tHorizStart
+         put ( mMaxYValue - (the y of tGridLineArray["Start"]) ) * mVertCellHeight into tVertStart
+         put ( the x of tGridLineArray["Stop"] * mHorizCellWidth) into tHorizEnd
+         put (mMaxYValue - (the y of tGridLineArray["Stop"]) ) * mVertCellHeight into tVertEnd
+
+         if the y of tGridLineArray["Start"] < the y of tGridLineArray["Stop"] and the x of tGridLineArray["Start"] = the x of tGridLineArray["Stop"] then --- we are in a cell at the at the same X going UP
+            put tVertStart + (mVertCellHeight/2) into tVertStart
+            put tVertEnd - (mVertCellHeight/2) into tVertEnd
+         else if the y of tGridLineArray["Start"] > the y of tGridLineArray["Stop"] and the x of tGridLineArray["Start"] = the x of tGridLineArray["Stop"] then -- we are in a cell at the at the same X going DOWN
+            put tVertStart - (mVertCellHeight/2) into tVertStart
+            put tVertEnd + (mVertCellHeight/2) into tVertEnd
+         end if
+
+         put polyline path with points [ point[ tHorizStart, tVertStart],\
+            point[ tHorizEnd, tVertEnd],\
+            point[ tHorizEnd, tVertEnd - mVertCellHeight],\
+            point[ tHorizStart, tVertStart - mVertCellHeight ] ] into tPath
+
          -- put rectangle path of rectangle [the x of tGridLineArray["Start"],the y of tGridLineArray["Start"], the x of tGridLineArray["Stop"] + mHorizCellWidth, (the y of tGridLineArray["Stop"]) + mVertCellHeight] into tPath
          put tPath into tGridLineArray["LineShapePath"]
          log [ "GridLineArray LineShapePath", tGridLineArray["LineShapePath"] ]
@@ -1225,7 +1244,7 @@ public handler OnPaint()
          put line path from point [tHorizStart,tVertStart] to point [tHorizEnd,tVertEnd] into tPath
          stroke tPath on this canvas
 
-         set the paint of this canvas to solid paint with color [0.5,0.125,0.5,0.5]
+         set the paint of this canvas to solid paint with color [0.125,0.125,0.5,0.5]
          put tGridLine["LineShapePath"] into tPath
          fill tPath on this canvas
       end repeat
