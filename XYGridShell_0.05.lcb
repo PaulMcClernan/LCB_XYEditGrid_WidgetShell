@@ -670,7 +670,7 @@ public handler OnMouseDown()
 
                -- put line path from point [tHorizStart, tVertStart + (mVertCellHeight/2)] to point [tHorizEnd - (mVertCellHeight/2), tVertEnd -(mVertCellHeight/2)] into tPath
 
-               if hitTestPath( tClickPosition, tGridLine["LineShapePath"], mVertCellHeight, false) then
+               if hitTestPath( tClickPosition, tGridLine["LineShapePath"],0, true) then
                -- if hitTestPath( point[tHoriz,tVert] , tPath, mVertCellHeight, false) then
                -- if hitTestPath( point[tHoriz,tVert], tPath, mVertCellHeight, true) then
                   -- the mouse position
