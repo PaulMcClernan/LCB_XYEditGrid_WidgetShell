@@ -202,32 +202,25 @@ private handler setGridLines(pGridLines as String) returns nothing
          put (mMaxYValue - (the y of tGridLineArray["Stop"]) ) * mVertCellHeight into tVertEnd
 
          if the y of tGridLineArray["Start"] < the y of tGridLineArray["Stop"] and the x of tGridLineArray["Start"] = the x of tGridLineArray["Stop"] then --- we are in a cell at the at the same X going UP
-            --put tVertStart + (mVertCellHeight/2) into tVertStart
-            -- put tVertEnd - (mVertCellHeight/2) into tVertEnd
-            put tHorizStart - (mHorizCellWidth/2) into tHorizStart
-            put tHorizEnd + (mHorizCellWidth/2) into tHorizEnd
+            put tVertStart + (mVertCellHeight/2) into tVertStart
+            put tVertEnd - (mVertCellHeight/2) into tVertEnd
          else if the y of tGridLineArray["Start"] > the y of tGridLineArray["Stop"] and the x of tGridLineArray["Start"] = the x of tGridLineArray["Stop"] then -- we are in a cell at the at the same X going DOWN
-            --put tVertStart into tVertStart
-            -- put tVertEnd - (mVertCellHeight/2) into tVertEnd
-            put tHorizStart - (mHorizCellWidth/2) into tHorizStart
-            put tHorizEnd + (mHorizCellWidth/2) into tHorizEnd
+            put tVertStart - (mVertCellHeight/2) into tVertStart
+            put tVertEnd - (mVertCellHeight/2) into tVertEnd
          end if
 
          if the x of tGridLineArray["Start"] < the x of tGridLineArray["Stop"] and the y of tGridLineArray["Start"] = the y of tGridLineArray["Stop"] then --- we are in a cell at the at the same Y going RIGHT
-            put tVertStart + (mVertCellHeight/2) into tVertStart
-            put tVertEnd - (mVertCellHeight/2) into tVertEnd
+            put tHorizStart + (mHorizCellWidth/2) into tHorizStart
             put tHorizEnd + (mHorizCellWidth/2) into tHorizEnd
          else if the x of tGridLineArray["Start"] > the x of tGridLineArray["Stop"] and the y of tGridLineArray["Start"] = the y of tGridLineArray["Stop"] then -- we are in a cell at the at the same Y going LEFT
-            put tVertStart + (mVertCellHeight/2) into tVertStart
-            put tVertEnd - (mVertCellHeight/2) into tVertEnd
-            put tHorizStart - (mHorizCellWidth) into tHorizStart
-            put tHorizEnd + (mHorizCellWidth) into tHorizEnd
+            put tHorizStart - (mHorizCellWidth/2) into tHorizStart
+            put tHorizEnd + (tHorizStart/2) into tHorizEnd
          end if
 
-         put polyline path with points [ point[ tHorizStart + (mHorizCellWidth/2), tVertStart],\
-            point[ tHorizEnd + (mHorizCellWidth/2), tVertEnd],\
-            point[ tHorizEnd + (mHorizCellWidth/2), tVertEnd - (mVertCellHeight)],\
-            point[ tHorizStart + (mHorizCellWidth/2), tVertStart - (mVertCellHeight)] ] into tPath
+         put polyline path with points [ point[ tHorizStart, tVertStart],\
+            point[ tHorizEnd, tVertEnd],\
+            point[ tHorizEnd, tVertEnd - mVertCellHeight],\
+            point[ tHorizStart, tVertStart - mVertCellHeight ] ] into tPath
 
          -- put rectangle path of rectangle [the x of tGridLineArray["Start"],the y of tGridLineArray["Start"], the x of tGridLineArray["Stop"] + mHorizCellWidth, (the y of tGridLineArray["Stop"]) + mVertCellHeight] into tPath
          put tPath into tGridLineArray["LineShapePath"]
