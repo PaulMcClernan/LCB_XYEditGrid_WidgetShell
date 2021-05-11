@@ -1,0 +1,1554 @@
+/**
+
+Description:
+Widget
+
+Name: mouseMove
+
+Type: message
+
+Name: gridMouseMove
+
+Type: message
+
+Name: gridMouseUp
+
+Type: message
+
+Name: gridMouseDown
+
+Type: message
+
+Name: keyDown
+
+Type: message
+
+Name: mouseDown
+
+Type: message
+
+Name: mouseUp
+
+Type: message
+
+Name: mouseRelease
+
+Type: message
+
+Name: gridLines
+
+Type: property
+
+Name: backgroundColor
+
+Type: property
+
+Name: hiliteColor
+
+Type: property
+
+Name: outerShadowColor
+
+Type: property
+
+Name: borderWidth
+
+Type: property
+
+Name: borderColor
+
+Type: property
+
+Name: maxValue
+
+Type: property
+
+*/
+widget community.livecode.paulmcclernan.xygrid
+
+-- dependancy declarations
+use com.livecode.canvas
+use com.livecode.string
+use com.livecode.sort
+use com.livecode.char
+use com.livecode.widget
+use com.livecode.engine
+use com.livecode.array
+use com.livecode.list
+use com.livecode.library.widgetutils
+
+-- adding metadata to ensure the extension displays correctly in livecode
+metadata title is "XYGridShell"
+metadata author is "Paul McClernan"
+metadata version is "0.1"
+metadata preferredSize is "800,200"
+-- metadata svgicon is "M0,0v69.6c0,1.4,1.1,2.5,2.4,2.5h9.7c0.8,0,1.5-0.4,2-1.1c0.4,0.7,1.1,1.1,2,1.1h9.8c0.8,0,1.5-0.4,1.9-1.1 c0.4,0.6,1.1,1.1,1.9,1.1h9.8c0.8,0,1.5-0.4,1.9-1.1c0.4,0.6,1.1,1.1,1.9,1.1h9.8c0.8,0,1.5-0.4,2-1.1c0.4,0.7,1.1,1.1,2,1.1h9.7 c0.8,0,1.5-0.4,1.9-1.1c0.4,0.6,1.1,1.1,1.9,1.1h9.7c0.8,0,1.5-0.4,1.9-1.1c0.4,0.6,1.1,1.1,1.9,1.1H94c1.3,0,2.4-1.1,2.4-2.5V0H0z M95.4,69.6c0,0.8-0.6,1.5-1.4,1.5h-9.8c-0.8,0-1.4-0.7-1.4-1.5V46.9h2.5c1,0,1.9-0.9,1.9-2V1h8.1L95.4,69.6z M80.4,71.1h-9.7 c-0.8,0-1.4-0.7-1.4-1.5V46.9h2.5c1,0,1.9-0.9,1.9-2V1h3.6v43.9c0,1.1,0.9,2,1.9,2h2.5v22.7C81.8,70.4,81.2,71.1,80.4,71.1z M57,71.1c-0.8,0-1.4-0.7-1.4-1.5V46.9h2.5c1,0,1.9-0.9,1.9-2V1h3.7v43.9c0,1.1,0.9,2,1.9,2h2.5v22.7c0,0.8-0.6,1.5-1.4,1.5 L57,71.1z M53.1,71.1h-9.8c-0.8,0-1.4-0.7-1.4-1.5V1H50v43.9c0,1.1,0.9,2,1.9,2h2.5v22.7C54.5,70.4,53.8,71.1,53.1,71.1z M28.3,69.6V46.9h2.5c1,0,1.9-0.9,1.9-2V1h8.1v68.6c0,0.8-0.6,1.5-1.4,1.5h-9.8C28.9,71.1,28.3,70.4,28.3,69.6z M14.7,69.6V46.9 h2.5c1,0,1.9-0.9,1.9
+-- 2V1h3.7v43.6l0,0v0.3c0,1.1,0.9,2,1.9,2h2.5v22.7c0,0.8-0.6,1.5-1.4,1.5H16C15.3,71.1,14.7,70.4,14.7,69.6z M12.1,71.1H2.4c-0.8,0-1.4-0.7-1.4-1.5V1h8.1v43.9c0,1.1,0.9,2,1.9,2h2.5v22.7C13.5,70.4,12.9,71.1,12.1,71.1z"
+
+private variable mCircleColor as Color
+-- property foregroundColor get getCircleColor set setCircleColor
+property circleColor   get getCircleColor   set setCircleColor
+metadata circleColor.editor  is "com.livecode.pi.colorwithalpha"
+metadata circleColor.section is "Colors"
+metadata circleColor.label   is "Point Marker fill"
+private handler setCircleColor(in pColor as String) returns nothing
+   put stringToColor(pColor) into mCircleColor
+   -- log mCircleColor
+   OnGeometryChanged()
+   redraw all
+end handler
+public handler getCircleColor() returns String
+   return colorToString(mCircleColor, true)
+end handler
+
+private variable mStrokesColor as Color
+property strokesColor get getBorderColor set setBorderColor
+metadata strokesColor.editor is "com.livecode.pi.colorwithalpha"
+metadata strokesColor.section is "Colors"
+metadata strokesColor.label   is "Stokes Color"
+public handler setBorderColor(in pColor as String) returns nothing
+   -- log pColor
+   put stringToColor(pColor) into mStrokesColor
+   -- log mStrokesColor
+   OnGeometryChanged()
+   redraw all
+end handler
+public handler getBorderColor() returns String
+   return colorToString(mStrokesColor, true)
+end handler
+
+property gridLines get getGridLines set setGridLines
+metadata gridLines.user_visible is "false"
+-- metadata gridLines.user_visible is "true"
+
+private variable mGridLines as List
+private handler setGridLines(pGridLines as String) returns nothing
+   variable tLinePoints as List
+   variable tLineListPoints as List
+   variable tPointStrList as List
+   variable tPointLstStr as String
+   variable tPointStr as String
+   variable tPath as Path
+
+   variable tGridlineFromPoint as Point
+   put point [mMinXValue,mMinYValue] into tGridlineFromPoint
+   variable tGridlineToPoint as Point
+   put point [mMinXValue,mMinYValue] into tGridlineToPoint
+   variable tGridLineArray as Array
+   variable tNumA as Number
+   variable tNumB as Number
+   variable tHorizStart as Number
+   variable tHorizEnd as Number
+   variable tVertStart as Number
+   variable tVertEnd as Number
+   variable tNumStr as String
+   variable tGridLinesList as List
+   variable tGridLine as optional any
+   variable tOctaveIteration as Number
+   ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   -- put the empty list into mGridLines -- Clears all previous Lines in the entire grid
+   put the empty array into tGridLineArray["Start"]
+   put the empty array into tGridLineArray["Stop"]
+
+   split pGridLines by " " into tGridLinesList
+   if the number of elements in tGridLinesList > 0 then
+
+      repeat for each element tGridLine in tGridLinesList
+         split tGridLine by ":" into tLineListPoints
+         -- if (tLineListPoints[1]) is (tLineListPoints[2]) then -- Start and Stop loc are the same
+         --   log ["SAME START & STOP", tLineListPoints[1] , tLineListPoints[2] ]
+         -- end if
+         if the number of elements in tLineListPoints is 2 then
+            split tLineListPoints[1] by "," into tPointStrList
+            set the x of tGridlineFromPoint to (tPointStrList[1] parsed as number)
+            set the y of tGridlineFromPoint to (tPointStrList[2] parsed as number)
+            put tGridlineFromPoint into tGridLineArray["Start"]
+            split tLineListPoints[2] by "," into tPointStrList
+            set the x of tGridlineToPoint to (tPointStrList[1] parsed as number)
+            set the y of tGridlineToPoint to (tPointStrList[2] parsed as number)
+            put tGridlineToPoint into tGridLineArray["Stop"]
+         else
+            split tLineListPoints[1] by "," into tPointStrList
+            set the x of tGridlineFromPoint to (tPointStrList[1] parsed as number)
+            set the y of tGridlineFromPoint to (tPointStrList[2] parsed as number)
+            put tGridlineFromPoint into tGridLineArray["Start"]
+
+            split tLineListPoints[1] by "," into tPointStrList
+            set the x of tGridlineToPoint to (tPointStrList[1] parsed as number)
+            set the y of tGridlineToPoint to (tPointStrList[2] parsed as number)
+            put tGridlineToPoint into tGridLineArray["Stop"]
+         end if
+
+         if the x of tGridlineFromPoint > the x of tGridlineToPoint then -- If the gridLine stop point is to the left of the start point
+            -- swap start & stop x and y ---
+            put the x of tGridlineFromPoint into tNumA
+            put the x of tGridlineToPoint into tNumB
+            set the x of tGridlineFromPoint to tNumB
+            set the x of tGridlineToPoint to tNumA
+
+            put the y of tGridlineFromPoint into tNumA
+            put the y of tGridlineToPoint into tNumB
+            set the y of tGridlineFromPoint to tNumB
+            set the y of tGridlineToPoint to tNumA
+
+            put tGridlineFromPoint into tGridLineArray["Start"]
+            put tGridlineToPoint into tGridLineArray["Stop"]
+         end if
+
+         put ( the x of tGridLineArray["Start"] * mHorizCellWidth) into tHorizStart
+         put ( mMaxYValue - (the y of tGridLineArray["Start"]) ) * mVertCellHeight into tVertStart
+
+         put ( the x of tGridLineArray["Stop"] * mHorizCellWidth) into tHorizEnd
+         put (mMaxYValue - (the y of tGridLineArray["Stop"]) ) * mVertCellHeight into tVertEnd
+
+         if the y of tGridLineArray["Start"] < the y of tGridLineArray["Stop"] and the x of tGridLineArray["Start"] = the x of tGridLineArray["Stop"] then --- we are in a cell at the at the same X going UP
+            --put tVertStart + (mVertCellHeight/2) into tVertStart
+            -- put tVertEnd - (mVertCellHeight/2) into tVertEnd
+            put tHorizStart - (mHorizCellWidth/2) into tHorizStart
+            put tHorizEnd + (mHorizCellWidth/2) into tHorizEnd
+         else if the y of tGridLineArray["Start"] > the y of tGridLineArray["Stop"] and the x of tGridLineArray["Start"] = the x of tGridLineArray["Stop"] then -- we are in a cell at the at the same X going DOWN
+            --put tVertStart into tVertStart
+            -- put tVertEnd - (mVertCellHeight/2) into tVertEnd
+            put tHorizStart - (mHorizCellWidth/2) into tHorizStart
+            put tHorizEnd + (mHorizCellWidth/2) into tHorizEnd
+         end if
+
+         if the x of tGridLineArray["Start"] < the x of tGridLineArray["Stop"] and the y of tGridLineArray["Start"] = the y of tGridLineArray["Stop"] then --- we are in a cell at the at the same Y going RIGHT
+            put tVertStart + (mVertCellHeight/2) into tVertStart
+            put tVertEnd - (mVertCellHeight/2) into tVertEnd
+            put tHorizEnd + (mHorizCellWidth/2) into tHorizEnd
+         else if the x of tGridLineArray["Start"] > the x of tGridLineArray["Stop"] and the y of tGridLineArray["Start"] = the y of tGridLineArray["Stop"] then -- we are in a cell at the at the same Y going LEFT
+            put tVertStart + (mVertCellHeight/2) into tVertStart
+            put tVertEnd - (mVertCellHeight/2) into tVertEnd
+            put tHorizStart - (mHorizCellWidth) into tHorizStart
+            put tHorizEnd + (mHorizCellWidth) into tHorizEnd
+         end if
+
+         put polyline path with points [ point[ tHorizStart + (mHorizCellWidth/2), tVertStart],\
+            point[ tHorizEnd + (mHorizCellWidth/2), tVertEnd],\
+            point[ tHorizEnd + (mHorizCellWidth/2), tVertEnd - (mVertCellHeight)],\
+            point[ tHorizStart + (mHorizCellWidth/2), tVertStart - (mVertCellHeight)] ] into tPath
+
+         -- put rectangle path of rectangle [the x of tGridLineArray["Start"],the y of tGridLineArray["Start"], the x of tGridLineArray["Stop"] + mHorizCellWidth, (the y of tGridLineArray["Stop"]) + mVertCellHeight] into tPath
+         put tPath into tGridLineArray["LineShapePath"]
+         log [ "GridLineArray LineShapePath", tGridLineArray["LineShapePath"] ]
+         put false into tGridLineArray["StartIsSelected"]
+         put false into tGridLineArray["EndIsSelected"]
+         put false into tGridLineArray["IsSelected"]
+         push tGridLineArray onto mGridLines
+      end repeat
+      -- log [mGridLines]
+      --  repeat for each element tGridLine in mGridLines
+         -- log tGridLine
+      -- end repeat
+   else
+      put the empty list into mGridLines
+   end if
+   redraw all
+end handler
+
+public handler getGridLines() returns optional any
+   variable tGridLine as optional any
+   variable tReturnStr as optional String
+   put "" into tReturnStr
+   repeat for each element tGridLine in mGridLines
+      put the x of tGridLine["Start"] formatted as string &","& the y of tGridLine["Start"] formatted as string &":" \
+         & the x of tGridLine["Stop"] formatted as string &","& the y of tGridLine["Stop"] formatted as string & "\n" after tReturnStr
+   end repeat
+   return tReturnStr
+end handler
+
+property selectedGridLines get getSelectedGridLines set setSelectedGridLines
+metadata selectedGridLines.user_visible is "false"
+-- metadata gridLines.user_visible is "true"
+public handler getSelectedGridLines() returns optional any
+   variable tGridLine as optional any
+   variable tReturnStr as optional String
+   put "" into tReturnStr
+   repeat for each element tGridLine in mGridLines
+      if tGridLine["StartIsSelected"] or tGridLine["EndIsSelected"] or tGridLine["IsSelected"] then
+         put the x of tGridLine["Start"] formatted as string &","& the y of tGridLine["Start"] formatted as string &":" \
+            & the x of tGridLine["Stop"] formatted as string &","& the y of tGridLine["Stop"] formatted as string & "\n" after tReturnStr
+      end if
+   end repeat
+   return tReturnStr
+end handler
+public handler setSelectedGridLines(in pParam as optional any) returns nothing
+   variable tGridLine as optional any
+   variable tList as optional List
+   variable tNewList as optional List
+   put the empty list into tNewList
+   variable tNum as optional Number
+   if pParam is "Delete" then
+      -- repeat with tNum from 1 up to (the number of elements in mGridLines)
+      --   put element tNum of mGridLines into tGridLine
+      repeat for each element tGridLine in mGridLines
+         if tGridLine["StartIsSelected"] or tGridLine["EndIsSelected"] or tGridLine["IsSelected"] then
+            --- is selected so do nothing here to remove from new list
+         else -- not selected so push it onto new GridLines list
+            push tGridLine onto tNewList
+         end if
+      end repeat
+      put tNewList into mGridLines
+      redraw all
+      -- return tReturnStr
+   else if pParam is "" or pParam is "None" then
+      repeat for each element tGridLine in mGridLines
+         if tGridLine["StartIsSelected"] or tGridLine["EndIsSelected"] or tGridLine["IsSelected"] then
+            log "Deselect All"
+            --- is selected
+            put false into tGridLine["StartIsSelected"]
+            put false into tGridLine["EndIsSelected"]
+            put false into tGridLine["IsSelected"]
+            push tGridLine onto tNewList
+         else -- not selected so push it onto new GridLines list
+            push tGridLine onto tNewList
+         end if
+      end repeat
+      put tNewList into mGridLines
+      redraw all
+   end if
+end handler
+
+private variable mBorderWidth as Number
+property borderWidth get mBorderWidth  set setBorderWidth
+metadata borderWidth.editor is "com.livecode.pi.number"
+metadata borderWidth.label is "Border width"
+metadata borderWidth.step is "0.1"
+metadata borderWidth.default is "0.1"
+metadata borderWidth.min is "0.1"
+metadata borderWidth.max is "25"
+public handler setBorderWidth(in pBorderWidth as Number) returns nothing
+   put pBorderWidth into mBorderWidth
+   OnGeometryChanged()
+   redraw all
+end handler
+
+private variable mMaxXValue as Number
+property maxXValue get getMaxXValue set setMaxXValue
+metadata maxXValue.editor is "com.livecode.pi.number"
+metadata maxXValue.default is "64"
+metadata maxXValue.min is "0"
+
+public handler setMaxXValue(in pMaxXValue as Number) returns nothing
+   --if pMaxXValue < 0 then
+   --   put 0 into pMaxXValue
+   -- end if
+   -- put pMaxXValue * 2 into mMaxXValue -- use when 0,0 is center (signed version)
+   put pMaxXValue into mMaxXValue -- use when range is 0,0 (at top,left) to MaxX,MaxY (at bottom,right)
+
+   OnGeometryChanged()
+   redraw all
+end handler
+public handler getMaxXValue() returns Number
+   --- return mMaxXValue / 2 -- for the position in signed version
+   return mMaxXValue
+end handler
+
+private variable mMinXValue as Number
+property minXValue get getMinXValue set setMinXValue
+metadata minXValue.editor is "com.livecode.pi.number"
+metadata minXValue.default is "0"
+-- metadata minXValue.min is "0" -- disallow negative numbers
+
+public handler setMinXValue(in pMinXValue as Number) returns nothing
+   --if pMaxXValue < 0 then
+   --   put 0 into pMaxXValue
+   -- end if
+   -- put pMaxXValue * 2 into mMaxXValue -- use when 0,0 is center (signed version)
+   put pMinXValue into mMinXValue -- use when range is 0,0 (at top,left) to MaxX,MaxY (at bottom,right)
+
+   OnGeometryChanged()
+   redraw all
+end handler
+public handler getMinXValue() returns Number
+   --- return mMaxXValue / 2 -- for the position in signed version
+   return mMinXValue
+end handler
+
+private variable mMaxYValue as Number
+property maxYValue get getMaxYValue set setMaxYValue
+metadata maxYValue.editor is "com.livecode.pi.number"
+metadata maxYValue.default is "12" -- ten octaves worth ;-)
+metadata maxYValue.min is "0"
+
+public handler setMaxYValue(in pMaxYValue as Number) returns nothing
+   --if pMaxYValue < 0 then
+   --   put 0 into pMaxYValue
+   -- end if
+   --- put pMaxYValue * 2 into mMaxYValue -- use when 0,0 is center (signed version)
+   put pMaxYValue into mMaxYValue -- use when range is 0,0 (at top,left) to MaxX,MaxY (at bottom,right)
+
+   OnGeometryChanged()
+   redraw all
+end handler
+public handler getMaxYValue() returns Number
+      -- return mMaxYValue / 2
+      return mMaxYValue
+end handler
+
+private variable mMinYValue as Number
+property minYValue get getMinYValue set setMinYValue
+metadata minYValue.editor is "com.livecode.pi.number"
+metadata minYValue.default is "0"
+--- metadata minYValue.min is "0" --- Limit to positive number (aka First Quadrant, to the upper right)
+
+public handler setMinYValue(in pMinYValue as Number) returns nothing
+   --if pMaxYValue < 0 then
+   --   put 0 into pMaxYValue
+   -- end if
+   --- put pMaxYValue * 2 into mMaxYValue -- use when 0,0 is center (signed version)
+   put pMinYValue into mMinYValue -- use when range is 0,0 (at top,left) to MaxX,MaxY (at bottom,right)
+
+   OnGeometryChanged()
+   redraw all
+end handler
+public handler getMinYValue() returns Number
+      -- return mMaxYValue / 2
+      return mMinYValue
+end handler
+
+private variable mCircleSize as Number
+property circleSize get mCircleSize set setCircleSize
+
+metadata maxValue.editor is "com.livecode.pi.number"
+public handler setCircleSize(in pCircleSize as Number) returns nothing
+   put pCircleSize into mCircleSize
+   OnGeometryChanged()
+   redraw all
+end handler
+
+private variable mOnlyMouseDownMoves as Boolean
+property onlyMouseDownMoves get mOnlyMouseDownMoves set mOnlyMouseDownMoves
+metadata onlyMouseDownMoves.editor is "com.livecode.pi.boolean"
+metadata onlyMouseDownMoves.default is ""
+metadata onlyMouseDownMoves.user_visible is "true"
+
+property gridEditMode  get getGridEditMode  set setGridEditMode
+metadata gridEditMode.editor is "com.livecode.pi.enum"
+metadata gridEditMode.options is "Draw,Select"
+metadata gridEditMode.default is "Select"
+metadata gridEditMode.label is "Grid Edit Mode"
+public variable mGridEditMode as String
+
+public handler setGridEditMode(in pMode as String) returns nothing
+   if pMode is "Draw" then
+      put "Draw" into mGridEditMode
+      put false into mSelectionMode
+      put true into mDrawMode
+   end if
+   if pMode is "Select" then
+      put "Select" into mGridEditMode
+      put true into mSelectionMode
+      put false into mDrawMode
+   end if
+   trigger all
+   OnGeometryChanged()
+   redraw all
+end handler
+public handler getGridEditMode() returns String
+   if mSelectionMode then
+      return "Select"
+   else if mDrawMode then
+      return "Draw"
+   end if
+end handler
+private variable mSelectionMode as Boolean
+property selectMode get mSelectionMode set setSelectMode
+-- metadata selectMode.editor is "com.livecode.pi.boolean"
+metadata selectMode.default is "true"
+metadata selectMode.user_visible is "false"
+public handler setSelectMode ( in pBool as Boolean) returns nothing
+    if pBool then
+      setGridEditMode("Select")
+   else
+      setGridEditMode("Draw")
+   end if
+   trigger all
+   OnGeometryChanged()
+   redraw all
+end handler
+private variable mDrawMode as Boolean
+property drawMode get mDrawMode set setDrawMode
+-- metadata drawMode.editor is "com.livecode.pi.boolean"
+metadata drawMode.default is "false"
+metadata drawMode.user_visible is "false"
+public handler setDrawMode ( in pBool as Boolean) returns nothing
+   if pBool then
+      setGridEditMode("Draw")
+   else
+      setGridEditMode("Select")
+   end if
+   trigger all
+   OnGeometryChanged()
+   redraw all
+end handler
+
+private variable mSnapBackToZero as Boolean
+property snapBackToZero get mSnapBackToZero set mSnapBackToZero
+metadata snapBackToZero.editor is "com.livecode.pi.boolean"
+metadata snapBackToZero.default is "true"
+
+private variable mDrawLineToLoc as Boolean
+property drawLineToLoc get mDrawLineToLoc set mDrawLineToLoc
+metadata drawLineToLoc.editor is "com.livecode.pi.boolean"
+metadata drawLineToLoc.default is "true"
+
+private variable mDrawHorizRectNumbers as Boolean
+property drawHorizRectNumbers get mDrawHorizRectNumbers set mDrawHorizRectNumbers
+metadata drawHorizRectNumbers.editor is "com.livecode.pi.boolean"
+metadata drawHorizRectNumbers.default is "false"
+
+private variable mDrawVertRectNumbers as Boolean
+property drawVertRectNumbers get mDrawVertRectNumbers set mDrawVertRectNumbers
+metadata drawVertRectNumbers.editor is "com.livecode.pi.boolean"
+metadata drawVertRectNumbers.default is "true"
+
+public handler OnSave(out rProperties as Array)
+   put mBorderWidth into rProperties["borderWidth"]
+   put mDrawHorizRectNumbers into rProperties["drawHorizRectNumbers"]
+   put mDrawVertRectNumbers into rProperties["drawVertRectNumbers"]
+   put mMinXValue into rProperties["minXValue"]
+   put mMinYValue into rProperties["minYValue"]
+   put mMaxXValue into rProperties["maxXValue"]
+   put mMaxYValue into rProperties["maxYValue"]
+   put mGridLines into rProperties["gridLines"]
+   put colorToString(mStrokesColor, false) into rProperties["strokesColor"]
+   put colorToString(mCircleColor, false) into rProperties["circleColor"]
+   put mCircleSize into rProperties["circleSize"]
+   -- put colorToString(mHiliteColor, true) into rProperties["hiliteColor"]
+end handler
+-- this handler is called when the widget is loaded
+public handler OnLoad(in pProperties as Array)
+   variable tTempList
+   put the keys of pProperties into tTempList
+   log [tTempList]
+
+   if "drawHorizRectNumbers" is in tTempList then
+      put pProperties["drawHorizRectNumbers"] into mDrawHorizRectNumbers
+   end if
+   if "drawVertRectNumbers" is in tTempList then
+      put pProperties["drawVertRectNumbers"] into mDrawVertRectNumbers
+   end if
+   if "minXValue" is in tTempList then
+      put pProperties["minXValue"] into mMinXValue
+   end if
+   if "maxXValue" is in tTempList then
+      put pProperties["maxXValue"] into mMaxXValue
+   end if
+   if "minYValue" is in tTempList then
+      put pProperties["minYValue"] into mMinYValue
+   end if
+   if "maxYValue" is in tTempList then
+      put pProperties["maxYValue"] into mMaxYValue
+   end if
+   if "circleSize" is in tTempList then
+      put pProperties["circleSize"] into mCircleSize
+   end if
+   if "gridLines" is in tTempList then
+      put pProperties["gridLines"] into mGridLines
+   end if
+   put pProperties["borderWidth"] into mBorderWidth
+   put stringToColor(pProperties["strokesColor"]) into mStrokesColor
+   put stringToColor(pProperties["circleColor"]) into mCircleColor
+   -- OnGeometryChanged()
+   redraw all
+end handler
+
+public handler OnStopEditing()
+   OnGeometryChanged()
+   redraw all
+end handler
+
+-----------------------------------------------------------------------------------------------  Mouse & Key Event Handlers --------------------------------------------------------------------------------------
+private variable mMouseButtonDown as Boolean
+
+public handler OnMouseUp()
+  put false into mMouseButtonDown
+  --- post signed version:
+  --- post "gridMouseUp" with [mGridMouseLoc[1] -(mMaxXValue/2),(mGridMouseLoc[2] -(mMaxYValue/2)) * -1] --  to my script object with [the click button]
+  --- post unsigned version:
+  setLocalGridCoordsFromLoc(the mouse position,false,false)
+  put [mGridMouseLoc[1],mGridMouseLoc[2]] into mSelectionEndLocalLoc
+  post "gridMouseUp" with [mSelectionEndLocalLoc[1],mSelectionEndLocalLoc[2]] --  to my script object with [the click button]
+  post "mouseUp" with [the click button] --- to my script object with [the click button]
+  --if mOnlyMouseDownMoves then
+  -- end if
+  put [mMinXValue,mMinXValue] into mGridMouseLoc
+  put nothing into mGridMouseLoc
+  put nothing into mSelectionStartLocalLoc
+  put nothing into mSelectionEndLocalLoc
+  put nothing into mSelectionRect
+
+  redraw all
+end handler
+
+variable mSelectionStartLocalLoc as optional List
+variable mSelectionEndLocalLoc as optional List
+variable mSelectionRect as optional Rectangle
+
+public handler OnMouseDown()
+   variable tGridLine as optional any
+   variable tElement as optional any
+   variable tHorizStart as Number
+   variable tHorizEnd as Number
+   variable tVertStart as Number
+   variable tVertEnd as Number
+   variable tHoriz as Number
+   variable tVert as Number
+   variable tRect as Rectangle
+   variable tPoint as Point
+   variable tClickPosition as Point
+   variable tPath as Path
+   variable tNum as Number
+
+   put true into mMouseButtonDown
+   put nothing into mSelectionStartLocalLoc
+   put nothing into mSelectionEndLocalLoc
+   put nothing into mSelectionRect
+   put point[0,0] into tClickPosition
+   setLocalGridCoordsFromLoc(the mouse position,false,false) -- setLocalGridCoordsFromLoc (pLoc,pReverseX,pReverseY)
+   post "mouseDown" with [the click button] --- to my script object with [the click button]
+   --- post signed version:
+   --- post "gridMouseDown" with [mGridMouseLoc[1] -(mMaxXValue/2),(mGridMouseLoc[2] -(mMaxYValue/2)) * -1] --  to my script object with [the click button]
+   --- post unsigned version:
+   put [mGridMouseLoc[1],mGridMouseLoc[2]] into mSelectionStartLocalLoc
+   put [mGridMouseLoc[1],mGridMouseLoc[2]] into mSelectionEndLocalLoc
+
+   put element (mGridMouseLoc[1])+1 of mHorizRectList into tElement
+   put the left of tElement["HorizRect"] into tHorizStart
+   set the x of tClickPosition to tHorizStart + (mHorizCellWidth/2)
+   put element (mGridMouseLoc[2])+1 of mVertRectList into tElement
+   put the top of (tElement["VertRect"])+1 into tVertStart
+   set the y of tClickPosition to tVertStart + (mVertCellHeight/2)
+
+   put rectangle [ tHorizStart, tVertStart, \
+      tHorizStart + mHorizCellWidth, tVertStart + mVertCellHeight ] into mSelectionRect
+
+      -- put nothing into mSelectionEndLocalLoc
+   if mSelectionMode then
+      if mGridLines is not nothing then  ---------------------------------- Scan mGridMouseLoc click lock for within any mGridLines
+
+
+         -- if mSelectionEndLocalLoc is not nothing then
+            repeat with tNum from 1 up to (the number of elements in mGridLines)
+               --- repeat for each element tGridLine in mGridLines
+               put element tNum of mGridLines into tGridLine
+
+               if ((the x of tGridLine["Start"])+1 < mMaxXValue+1) then
+                  put element ((the x of tGridLine["Start"])+1) of mHorizRectList into tElement
+                  put (the left of tElement["HorizRect"]) into tHorizStart
+               else
+                  next repeat
+               end if
+               if ((the y of tGridLine["Start"])+1 < mMaxYValue+1) then
+                  put element ((the y of tGridLine["Start"])+1) of mVertRectList into tElement
+                  put (the top of tElement["VertRect"]) into tVertStart
+               else
+                  next repeat
+               end if
+               if ((the x of tGridLine["Stop"])+1 < mMaxXValue+1) then
+                  put element ((the x of tGridLine["Start"])+1) of mHorizRectList into tElement
+                  put (the right of tElement["HorizRect"]) into tHorizEnd
+               else
+                  next repeat
+               end if
+               if ((the y of tGridLine["Stop"])+1 < mMaxYValue+1) then
+                  put element ((the y of tGridLine["Stop"])+1) of mVertRectList into tElement
+                  put (the bottom of tElement["VertRect"]) into tVertEnd
+               else
+                  next repeat
+               end if
+
+               put rectangle [tHorizStart,tVertStart,tHorizEnd,tVertEnd] into tRect
+               -- put rectangle path of tRect into tPath
+
+               -- put element (mSelectionStartLocalLoc[1] + 1) of mHorizRectList into tElement
+               -- put (the left of tElement["HorizRect"]) + (mHorizCellWidth/2) into tHoriz
+               -- put element (mSelectionStartLocalLoc[2] +1) of mVertRectList into tElement
+               -- put (the bottom of tElement["VertRect"]) + (mVertCellHeight/2) into tVert
+
+               if tClickPosition is within tRect then
+               -- if point [tHoriz,tVert] is within tRect then
+                  log ["point within grid line clicked",tClickPosition,tRect]
+                  -- log ["point within grid line clicked",tHoriz,tVert,tRect]
+                  put true into tGridLine["IsSelected"]
+               end if
+
+               -- put line path from point [tHorizStart, tVertStart + (mVertCellHeight/2)] to point [tHorizEnd - (mVertCellHeight/2), tVertEnd -(mVertCellHeight/2)] into tPath
+
+               if hitTestPath( tClickPosition, tGridLine["LineShapePath"],0, true) then
+               -- if hitTestPath( point[tHoriz,tVert] , tPath, mVertCellHeight, false) then
+               -- if hitTestPath( point[tHoriz,tVert], tPath, mVertCellHeight, true) then
+                  -- the mouse position
+                  -- if hitTestPath( point[tHoriz,tVert], tPath, mHorizCellWidth * 0.90, false) then
+                     -- set pWithin true and pStrokeWidth to 0 if you want to hit-test the filled path
+                     -- set pWithin false and pStrokeWidth != 0 if you want hit-test the stroked path (i.e. just the outline)
+                     -- set pWithin true and pStrokeWidth != 0 if you want to hit-test the stroked and filled path.
+                  -- put true into tGridLine["StartIsSelected"]
+                  put true into tGridLine["IsSelected"]
+                  -- put true into tGridLine["EndIsSelected"]
+                  log ["Clicked in middle of a Gridline", tClickPosition, tGridLine["LineShapePath"] ]
+
+               end if
+
+               if (the x of tGridLine["Stop"]) = mGridMouseLoc[1] and (the y of tGridLine["Stop"]) = mGridMouseLoc[2] then
+                  log "Clicked at a Gridline stop cell"
+                  -- put not tGridLine["IsSelected"] into tGridLine["IsSelected"]
+                  put true into tGridLine["EndIsSelected"]
+               end if
+
+               if (the x of tGridLine["Start"]) = mGridMouseLoc[1] and (the y of tGridLine["Start"]) = mGridMouseLoc[2] then
+                  log "Clicked at a Gridline start cell"
+                  -- put not tGridLine["IsSelected"] into tGridLine["IsSelected"]
+                  put true into tGridLine["StartIsSelected"]
+               end if
+
+               put tGridLine into element tNum of mGridLines
+            end repeat
+          -- end if
+      end if
+   end if
+   redraw all
+   post "gridMouseDown" with [ mGridMouseLoc[1], mGridMouseLoc[2] ]
+   -- post "gridMouseDown" with [mSelectionStartLocalLoc[1],mSelectionStartLocalLoc[2]] --  to my script object with [the click button]
+end handler
+
+public handler OnMouseMove()
+   variable tGridLine as optional any
+   variable tElement as optional any
+   variable tHorizStart as Number
+   variable tHorizEnd as Number
+   variable tVertStart as Number
+   variable tVertEnd as Number
+   variable tHoriz as Number
+   variable tVert as Number
+   variable tRect as Rectangle
+   variable tPoint as Point
+   variable tNum as Number
+
+   variable tPosition as Point
+   put the mouse position into tPosition
+   setLocalGridCoordsFromLoc(tPosition,false,false) -- setLocalGridCoordsFromLoc (pLoc,pReverseX,pReverseY)
+   put [mGridMouseLoc[1],mGridMouseLoc[2]] into mSelectionEndLocalLoc
+
+   if mOnlyMouseDownMoves is true and mMouseButtonDown is false then
+      -- do nothing
+   else
+         --variable tRoundedPosition as Point
+         -- put point [0,0] into tRoundedPosition
+         -- put the rounded of (the x of tPosition) into the x of tRoundedPosition
+         -- put the rounded of (the y of tPosition) into the y of tRoundedPosition
+         -- setLocalGridCoordsFromLoc(tRoundedPosition)
+         if mSelectionMode then
+            if mSelectionStartLocalLoc is not nothing then
+               if mGridLines is not nothing then  ---------------------------------- Scan range for mGridLines & create selection rect
+                  -- put mHorizRectList[1] into tElement
+                  -- put the right of (tElement["HorizRect"]) - the left of (tElement["HorizRect"]) into mHorizCellWidth
+                  -- put mVertRectList[1] into tElement
+                  -- put the bottom of (tElement["VertRect"]) - the top of (tElement["VertRect"]) into mVertCellHeight
+
+                  put (element 1 of mSelectionStartLocalLoc) into tHoriz
+                  put element (tHoriz+1) of mHorizRectList into tElement
+                  put the left of (tElement["HorizRect"]) into tHorizStart
+
+                  put (element 2 of mSelectionStartLocalLoc) into tVert
+                  put element (tVert+1) of mVertRectList into tElement
+                  put the top of tElement["VertRect"] into tVertStart
+
+                  put (element 1 of mGridMouseLoc) into tHoriz
+                  put element (tHoriz+1) of mHorizRectList into tElement
+                  put the right of (tElement["HorizRect"]) into tHorizEnd
+                  if tHorizStart > tHorizEnd then -- we are in a cell going LEFT
+                     --- SWAP START & STOP
+                     put tHorizStart into tHoriz
+                     put tHorizEnd into tHorizStart
+                     put tHoriz into tHorizEnd
+                     put tHorizStart - mHorizCellWidth into tHorizStart
+                     put tHorizEnd + mHorizCellWidth into tHorizEnd
+                 end if
+                 if tHorizStart = tHorizEnd then
+                    put tHorizStart - mHorizCellWidth into tHorizStart
+                    put tHorizEnd + mHorizCellWidth into tHorizEnd
+                 end if
+
+                  put (element 2 of mGridMouseLoc) into tVert
+                  put element (tVert+1) of mVertRectList into tElement
+                  put the bottom of tElement["VertRect"] into tVertEnd
+                 if tVertStart > tVertEnd then -- we are in a cell going UP
+                    --- SWAP START & STOP
+                    put tVertStart into tVert
+                    put tVertEnd into tVertStart
+                    put tVert into tVertEnd
+                    put tVertStart - mVertCellHeight into tVertStart
+                    put tVertEnd + mVertCellHeight into tVertEnd
+                 end if
+                 if tVertStart = tVertEnd then
+                    put tVertStart + mVertCellHeight into tVertStart
+                    put tVertEnd - mVertCellHeight into tVertEnd
+                 end if
+                 put rectangle [tHorizStart,tVertStart,tHorizEnd,tVertEnd] into mSelectionRect
+               -- put rectangle [ mSelectionStartLocalLoc[1], mSelectionStartLocalLoc[2],mSelectionEndLocalLoc[2]+1,mSelectionEndLocalLoc[2]+1] into tRect
+               -- put rectangle path of rectangle [tHorizStart,tVertStart,tHorizEnd,tVertEnd] into tPath
+               -- log tRect
+               end if
+
+               ------------------------------------------------------------------------ check for click at start / stop of GridLine
+               repeat with tNum from 1 up to (the number of elements in mGridLines)
+                  --- repeat for each element tGridLine in mGridLines
+                  put element tNum of mGridLines into tGridLine
+
+                  put (the x of tGridLine["Start"]) into tHoriz
+                  if tHoriz + 1 < mMaxXValue + 1 then
+                     put element (tHoriz+1) of mHorizRectList into tElement
+                     put the left of (tElement["HorizRect"])+(mHorizCellWidth/2) into tHoriz
+                  end if
+
+                  put (the y of tGridLine["Start"]) into tVert
+                  if tVert +1 < mMaxYValue+1 then
+                     put element (tVert+1) of mVertRectList into tElement
+                     put the top of tElement["VertRect"]+(mVertCellHeight/2) into tVert
+                  end if
+
+                  put point [tHoriz, tVert] into tPoint
+
+                  if tPoint is within mSelectionRect then
+                     log ["Found GridLine Start Within Selection Range",tGridLine["Start"],mSelectionRect]
+                     put true into tGridLine["IsSelected"]
+                     put true into tGridLine["StartIsSelected"]
+                  else
+                     -- log [tGridLine["Start"],mSelectionRect]
+                     -- put true into tGridLine["IsSelected"]
+                     -- put false into tGridLine["StartIsSelected"]
+                  end if
+
+                  put (the x of tGridLine["Stop"]) into tHoriz
+                  if tHoriz + 1 < mMaxXValue + 1 then
+                     put element (tHoriz+1) of mHorizRectList into tElement
+                     put the left of (tElement["HorizRect"]) + (mHorizCellWidth/2) into tHoriz
+                  end if
+
+                  put (the y of tGridLine["Stop"]) into tVert
+                  if tVert +1 < mMaxYValue+1 then
+                     put element (tVert+1) of mVertRectList into tElement
+                     put the top of tElement["VertRect"] + (mVertCellHeight/2) into tVert
+                  end if
+
+                  put point [tHoriz, tVert] into tPoint
+
+                  if tPoint is within mSelectionRect then
+                     put true into tGridLine["EndIsSelected"]
+                     log ["Found GridLine End Within Selection Range",tGridLine["Stop"],mSelectionRect]
+                  else
+                     -- put false into tGridLine["EndIsSelected"]
+                     -- log [tGridLine["Stop"],mSelectionRect]
+                  end if
+                  -- [left,top,right,bottom]
+
+                  put rectangle [ the x of tGridLine["Start"], the y of tGridLine["Start"], the x of tGridLine["Stop"], (the y of tGridLine["Stop"]) + mVertCellHeight] into tRect
+                 if point [ (mGridMouseLoc[1] * mHorizCellWidth) + (mHorizCellWidth/2), (mGridMouseLoc[2] * mVertCellHeight) + (mVertCellHeight/2)] is within tRect then
+                    log "middle part of line clicked"
+                    put true into tGridLine["IsSelected"]
+                    put true into tGridLine["EndIsSelected"]
+                    put true into tGridLine["StartIsSelected"]
+                 else
+                     -- put false into tGridLine["IsSelected"]
+                  end if
+
+                  put tGridLine into element tNum of mGridLines
+
+                  -- put line path from point [tHorizStart,tVertStart] to point [tHorizEnd ,tVertEnd] into tPath
+                  -- set the paint of this canvas to solid paint with color [0.5,0.5,0.125,0.5]
+                  -- set the stroke width of this canvas to (mVertCellHeight *0.75)
+                  -- stroke tPath on this canvas
+               end repeat
+            end if
+         end if
+      redraw all
+      post "mouseMove" with [the x of tPosition, the y of tPosition]
+      -- post "gridMouseMove" with [ the rounded of ( mGridMouseLoc[1] (mMaxValue/2) ), the rounded of ( (mGridMouseLoc[2] (mMaxValue/2)) * -1 )]
+      -- post "gridMouseMove" with [ mGridMouseLoc[1] -(mMaxXValue/2), (mGridMouseLoc[2] -(mMaxYValue/2)) * -1 ]
+      --- post unsigned version:
+      post "gridMouseMove" with [ mGridMouseLoc[1], mGridMouseLoc[2] ] --  to my script object with [the click button]
+   end if
+end handler
+
+public handler OnMouseCancel()
+   -- put false into mPianoMouseButtonDown
+   OnMouseUp()
+end handler
+--public handler OnMouseCancelHover()
+--   put false into mMouseButtonDown
+--   OnMouseUp()
+--end handler
+--public handler OnMouseEnter()
+   --variable tMouseButtonState as String
+   --execute script "global gPianoMouseButtonDown ; return gPianoMouseButtonDown"
+   --execute script "return mouse()"
+   -- log the result
+   --if the result is "up" then
+      --put false into mMouseButtonDown
+       -- OnMouseUp()
+   --else
+       --put true into mMouseButtonDown
+       -- OnMouseDown()
+   --end if
+--end handler
+
+public handler OnMouseScroll(deltaX, deltaY)
+   --> deltaX is the horizontal scroll
+   --> deltaY is the vertical scroll
+   --> deltaX and deltaY are -1 or 1 (or 0)
+   --> on a mouse with vertical scroll only the
+   --> horizontal scroll is triggered with Shift
+  log [deltaX, deltaY]
+end handler
+
+public handler OnActionKeyPress(in pKey as String) returns nothing
+   log ["ActionKeyPress",pKey]
+end handler
+
+public handler OnKeyPress(in pKey as String) returns nothing
+   -- stuff happens here
+end handler
+
+public handler OnFocusEnter() returns nothing
+   log ["FocusEnter"]
+end handler
+public handler OnFocusLeave() returns nothing
+   log ["FocusLeave"]
+end handler
+-----------------------------------------------------------------------------------------------  Creating & Drawing --------------------------------------------------------------------------------------
+
+public handler OnCreate()
+   variable tRect as Rectangle
+   variable tList as List
+   variable tNum as Number
+   variable tElement as optional any
+   variable tArray as optional Array
+   put 256 into mMaxXValue
+   put 0 into mMinXValue
+   put 24 into mMaxYValue
+   put 0 into mMinYValue
+   put [mMinXValue,mMinYValue] into mGridMouseLoc
+   put true into mSelectionMode
+   put nothing into mSelectionStartLocalLoc
+   put nothing into mSelectionEndLocalLoc
+
+   buildGridRectLists()
+
+   put (element 1 of mHorizRectList) into tElement
+   put (the right of tElement["HorizRect"]) * 0.5 into mCircleSize
+   put (element 1 of mVertRectList) into tElement
+   put (the bottom of tElement["VertRect"]) * 0.5 into tNum
+   if tNum < mCircleSize then
+      put tNum into mCircleSize
+   end if
+
+   put 0.1 into mBorderWidth
+   put the color of my foreground paint into mCircleColor
+   put the color of my border paint into mStrokesColor
+end handler
+
+public handler OnGeometryChanged()
+   buildGridRectLists()
+   redraw all
+end handler
+--------------------------------------------------------------------------------------------------------------
+public handler OnPaint()
+   variable tNum as Number
+   variable tCounter as Number
+   variable tArray as Array
+   variable tList as List
+   variable tPath as Path
+   variable tRect as Rectangle
+   variable tElement as optional any
+
+   variable tHalfStrokeOffset as Number
+   variable tMyWidthMinusStroke as Number
+   variable tMyHeightMinusStroke as Number
+
+   variable tKeysList as List
+   variable tKey as Array
+   variable tKeyPath as Path
+   variable tKeyRect as Rectangle
+   variable tKeySpacing as Number
+
+   variable tHorizSection as Array
+   variable tHorizSectionWidth as Number
+   variable tHorizSectionIteration as Number
+   variable tHorizSectionShift as Number
+
+   variable tVertSection as Array
+   variable tVertSectionWidth as Number
+   variable tVertSectionIteration as Number
+   variable tVertSectionShift as Number
+
+   variable tVertRectList as List
+   variable tVertRectArray as Array
+   variable tVertRectNumber as Number
+   variable tVertRectRectangle as Rectangle
+
+   variable tHoriz as optional Number
+   variable tVert as optional Number
+   variable tHorizStart as optional Number
+   variable tVertStart as optional Number
+   variable tHorizEnd as optional Number
+   variable tVertEnd as optional Number
+
+   variable tFont as Font
+   variable tBounds as Rectangle
+
+   ---------------------------------------------------------- draw grid ------------------------------------------------------
+   set the stroke width of this canvas to mBorderWidth
+   set the paint of this canvas to solid paint with mStrokesColor
+   ----------------------------- columns ----------------------------
+   repeat with tNum from 1 up to (the number of elements in mHorizRectList)
+   -- repeat for each element tElement in mHorizRectList
+      put mHorizRectList[tNum] into tElement
+      put rectangle path of (tElement["HorizRect"]) into tPath
+
+      stroke tPath on this canvas
+      if mDrawHorizRectNumbers then
+         -- Set up tFont as size 4 Arial
+         put font "Arial" at size 0.25 into tFont
+         -- Measure text with tFont
+         --put the image bounds of text "Sample text" with tFont into tBounds
+         --put the bounds of text "Sample text" with tFont into tBounds
+         -- fill text ((tNum-1) formatted as string) at top left of mHorizRectList[tNum] on this canvas
+         fill text ((tElement["HorizIndex"]) formatted as string) at bottom of (tElement["HorizRect"]) on this canvas
+      end if
+   end repeat
+   ----------------------------- rows -------------------------------
+   repeat with tNum from 1 up to (the number of elements in mVertRectList)
+      put mVertRectList[tNum] into tElement
+      put rectangle path of tElement["VertRect"] into tPath
+      stroke tPath on this canvas
+      if mDrawVertRectNumbers then
+         -- Set up tFont as size 4 Arial
+         put font "Arial" at size 0.25 into tFont
+         -- Measure text with tFont
+         --put the image bounds of text "Sample text" with tFont into tBounds
+         --put the bounds of text "Sample text" with tFont into tBounds
+         -- fill text ((tNum-1) formatted as string) at center of tVertRect["VertRect"] on this canvas
+         fill text (tElement["VertIndex"] formatted as string) at left of tElement["VertRect"] on this canvas
+      end if
+   end repeat
+   ------------------------------------------------------------------ Draw Cross Hair:
+   -- set the stroke width of this canvas to mBorderWidth * 3
+   -- set the paint of this canvas to solid paint with mStrokesColor
+   -- put line path from point [my width / 2, 0] to point [my width / 2,my height] into tPath
+   -- stroke tPath on this canvas
+   -- put line path from point [0,my height / 2] to point [my width,my height/2] into tPath
+   -- stroke tPath on this canvas
+   ------------------------------------------------------------------ Quarter Horizontal Markers:
+    set the stroke width of this canvas to mBorderWidth * 20
+    set the paint of this canvas to solid paint with mStrokesColor
+    put line path from point [mHorizCellWidth * (mMaxXValue * 0.25), (mMinYValue * mVertCellHeight)] to point [mHorizCellWidth *(mMaxXValue * 0.25),my height] into tPath
+    stroke tPath on this canvas
+    put line path from point [mHorizCellWidth * (mMaxXValue * 0.5), (mMinYValue * mVertCellHeight)] to point [mHorizCellWidth *(mMaxXValue * 0.5),my height] into tPath
+    stroke tPath on this canvas
+    put line path from point [mHorizCellWidth * (mMaxXValue * 0.75), (mMinYValue * mVertCellHeight)] to point [mHorizCellWidth *(mMaxXValue * 0.75),my height] into tPath
+    stroke tPath on this canvas
+    ------------------------------------------------------------------ Eighths Horizontal Markers:
+    set the stroke width of this canvas to mBorderWidth * 10
+    set the paint of this canvas to solid paint with mStrokesColor
+    put line path from point [mHorizCellWidth * (mMaxXValue * .125), (mMinYValue * mVertCellHeight)] to point [mHorizCellWidth *(mMaxXValue * 0.125),my height] into tPath
+    stroke tPath on this canvas
+    put line path from point [mHorizCellWidth * (mMaxXValue * 0.375), (mMinYValue * mVertCellHeight)] to point [mHorizCellWidth *(mMaxXValue * 0.375),my height] into tPath
+    stroke tPath on this canvas
+    put line path from point [mHorizCellWidth * (mMaxXValue * 0.625), (mMinYValue * mVertCellHeight)] to point [mHorizCellWidth *(mMaxXValue * 0.625),my height] into tPath
+    stroke tPath on this canvas
+    put line path from point [mHorizCellWidth * (mMaxXValue * 0.875), (mMinYValue * mVertCellHeight)] to point [mHorizCellWidth *(mMaxXValue * 0.875),my height] into tPath
+    stroke tPath on this canvas
+   -----------------------------------------------------------------Draw Outer Border:
+   set the paint of this canvas to solid paint with mStrokesColor
+   set the stroke width of this canvas to (mBorderWidth * 30)
+   put my bounds into tRect
+   stroke rectangle path of tRect on this canvas
+   ------------------------------------------------------------------  Draw Loc Markers
+   set the stroke width of this canvas to mBorderWidth
+   if mGridMouseLoc is not nothing then
+      ----- GET [0,0] local point coordinate
+      put (element (mGridMouseLoc[1]+1) of mHorizRectList) into tElement
+      put the left of (tElement["HorizRect"]) into tHorizEnd
+      put (element (mGridMouseLoc[2]+1) of mVertRectList) into tElement
+      put the top of (tElement["VertRect"]) into tVertEnd
+      -- log [tElement["VertIndex"],tElement["VertRect"]]
+      -- put (element 1 of mGridMouseLoc * mHorizCellWidth ) into tHoriz
+      -- put (element 2 of mGridMouseLoc * mVertCellHeight ) into tVert
+      if mDrawLineToLoc then
+         -- put line path from point [my width / 2, my height / 2] to point [tHoriz,tVert] into tPath -- center is 0,0 -signed int version
+         put line path from point [mMinXValue,mMinYValue] to point [tHorizEnd + (mHorizCellWidth/2) ,tVertEnd + (mVertCellHeight/2)] into tPath -- 0,0 as is  unsigned int version
+         -- put line path from point [tHorizStart,tVertStart] to point [tHorizEnd + (mHorizCellWidth/2) ,tVertEnd + (mVertCellHeight/2)] into tPath -- 0,0 as is  unsigned int version
+         stroke tPath on this canvas
+      end if
+      set the paint of this canvas to solid paint with mCircleColor
+      put circle path centered at point [tHorizEnd + (mHorizCellWidth/2) ,tVertEnd + (mVertCellHeight/2)] with radius (mCircleSize *0.5) into tPath
+
+      fill tPath on this canvas
+      -- set the paint of this canvas to solid paint with color [1,0,0,0.1]
+      -- put rectangle path of rectangle [mSelectionStartLocalLoc[1] * mHorizCellWidth , mSelectionStartLocalLoc[2] * mVertCellHeight, tHoriz, tVert] into tPath
+      -- fill tPath on this canvas
+      ------------------------------------------------------------------  Just for style & fun, draw markers for the current row & collumn
+
+      put circle path centered at point [mMinXValue, tVertEnd + (mVertCellHeight/2)] with radius (mCircleSize *0.5) into tPath
+      fill tPath on this canvas
+
+      --- This could be like a "play-head" line / marker:
+      put line path from point [tHorizEnd, mMaxYValue * mVertCellHeight] to point [tHorizEnd, mMaxYValue - mVertCellHeight ] into tPath
+      set the stroke width of this canvas to (mBorderWidth * 8)
+      stroke tPath on this canvas
+      put rectangle path of rectangle [tHorizEnd, mMaxYValue * mVertCellHeight, tHorizEnd + (mHorizCellWidth *0.25) , mMaxYValue * mVertCellHeight - (mVertCellHeight *0.5) ] into tPath
+      fill tPath on this canvas
+      -- put circle path centered at point [tHorizEnd, mMaxYValue * mVertCellHeight] with radius (mCircleSize *0.375) into tPath
+      -- fill tPath on this canvas
+   end if
+    -----------------------------------------------------------------Draw Selection Border:
+    if mSelectionMode then
+      if mSelectionRect is not nothing then
+         put rectangle path of mSelectionRect into tPath
+         set the paint of this canvas to solid paint with color [0,1,0,0.25]
+         fill tPath on this canvas
+       end if
+    end if
+   -----------------------------------------------------------------Draw Current Line:
+   if not mSelectionMode then
+      variable tMaxX as Number
+      variable tMaxY as Number
+      if mSelectionStartLocalLoc is not nothing then
+            put (element 1 of mSelectionStartLocalLoc) into tHoriz
+            put element (tHoriz+1) of mHorizRectList into tElement
+            put the left of (tElement["HorizRect"]) into tHoriz
+            put tHoriz+mHorizCellWidth/2 into tHorizStart
+
+            put (element 2 of mSelectionStartLocalLoc) into tVert
+            put element (tVert+1) of mVertRectList into tElement
+            put the top of tElement["VertRect"] into tVert
+            put tVert +mVertCellHeight/2 into tVertStart
+
+            put (element 1 of mGridMouseLoc) into tHoriz
+            put element (tHoriz+1) of mHorizRectList into tElement
+            put the left of (tElement["HorizRect"]) into tHoriz
+            put tHoriz+mHorizCellWidth/2 into tHorizEnd
+
+            put (element 2 of mGridMouseLoc) into tVert
+            put element (tVert+1) of mVertRectList into tElement
+            put the top of tElement["VertRect"] into tVert
+            put tVert +mVertCellHeight/2 into tVertEnd
+
+            if tHorizStart = tHorizEnd and tVertStart = tVertEnd then
+               put tHorizStart - (mHorizCellWidth/2) into tHorizStart
+               put tHorizEnd + (mHorizCellWidth/2) into tHorizEnd
+            else if tHorizStart > tHorizEnd and tVertStart = tVertEnd then --- we are in a cell at the at the same Y going LEFT
+               put tHorizStart - (mHorizCellWidth/2) into tHorizStart
+               put tHorizEnd - (mHorizCellWidth/2) into tHorizEnd
+            else if tHorizStart < tHorizEnd and tVertStart = tVertEnd then -- we are in a cell at the at the same height going RIGHT
+               put tHorizStart - (mHorizCellWidth/2) into tHorizStart
+               put tHorizEnd + (mHorizCellWidth/2) into tHorizEnd
+            end if
+            if tVertStart > tVertEnd and tHorizStart = tHorizEnd then --- we are in a cell at the at the same X going UP
+               put tVertStart +  (mVertCellHeight/2) into tVertStart
+               put tVertEnd - (mVertCellHeight/2) into tVertEnd
+            else if tVertStart < tVertEnd and tHorizStart = tHorizEnd then -- we are in a cell at the at the same height going DOWN
+               put tVertStart - (mVertCellHeight/2) into tVertStart
+               put tVertEnd + (mVertCellHeight/2) into tVertEnd
+            end if
+            --------------- Draw the currentLine ---------------
+            put line path from point [ tHorizStart , tVertStart ] to point [tHorizEnd, tVertEnd] into tPath
+            set the paint of this canvas to solid paint with color [0.5,0.0,0.25,0.5]
+            set the stroke width of this canvas to (mVertCellHeight * 0.80)
+            stroke tPath on this canvas
+            ----------Draw currentline End Point marker ------------------
+            set the paint of this canvas to solid paint with color [0.5,0.125,0.125,0.5]
+            put circle path centered at point [tHorizEnd,tVertEnd] with radius mCircleSize * 0.5 into tPath
+            fill tPath on this canvas
+      end if
+   end if
+   -----------------------------------------------------------------Draw any gridLines that were set ----------------------
+   if mGridLines is not nothing then
+      variable tGridLine as optional any
+      repeat for each element tGridLine in mGridLines
+
+         put (the x of tGridLine["Start"]) into tHoriz
+         -- log [mMaxXValue, mMaxYValue]
+         if tHoriz +1 < mMaxXValue+1 then
+            put element (tHoriz+1) of mHorizRectList into tElement
+            put the left of (tElement["HorizRect"]) into tHoriz
+            put tHoriz +mHorizCellWidth/2 into tHorizStart
+         else
+            log ["Start X Out of range"]
+            next repeat
+         end if
+
+         put (the y of tGridLine["Start"]) into tVert
+         if tVert +1 < mMaxYValue+1 then
+            put element (tVert+1) of mVertRectList into tElement
+            put the top of tElement["VertRect"] into tVert
+            put tVert +mVertCellHeight/2 into tVertStart
+         else
+            log ["Start Y Out of range"]
+            next repeat
+         end if
+
+         put (the x of tGridLine["Stop"]) into tHoriz
+         if tHoriz+1 < mMaxXValue+1 then
+            put element (tHoriz+1) of mHorizRectList into tElement
+            put the left of (tElement["HorizRect"]) into tHoriz
+            put tHoriz +mHorizCellWidth/2 into tHorizEnd
+         else
+            log ["Stop X Out of range"]
+            next repeat
+         end if
+
+         put (the y of tGridLine["Stop"]) into tVert
+         if tVert +1 < mMaxYValue+1 then
+            put element (tVert+1) of mVertRectList into tElement
+            put the top of tElement["VertRect"] into tVert
+            put tVert +mVertCellHeight/2 into tVertEnd
+         else
+            log ["Stop Y Out of range"]
+            next repeat
+         end if
+         -- put ((the x of tGridLine["Start"] * mHorizCellWidth )+mHorizCellWidth/2) into tHorizStart
+         -- put ((the y of tGridLine["Start"] * mVertCellHeight )+mVertCellHeight/2) into tVertStart
+
+         -- put ((the x of tGridLine["Stop"] * mHorizCellWidth )+mHorizCellWidth/2)  into tHorizEnd
+         -- put ((the y of tGridLine["Stop"] * mVertCellHeight )+mVertCellHeight/2) into tVertEnd
+
+         if tHorizStart = tHorizEnd and tVertStart = tVertEnd then
+            put tHorizStart - (mHorizCellWidth/2) into tHorizStart
+            put tHorizEnd + (mHorizCellWidth/2) into tHorizEnd
+         else if tHorizStart > tHorizEnd and tVertStart = tVertEnd then --- we are in a cell at the at the same Y going LEFT
+            put tHorizStart - (mHorizCellWidth/2) into tHorizStart
+            put tHorizEnd - (mHorizCellWidth/2) into tHorizEnd
+         else if tHorizStart < tHorizEnd and tVertStart = tVertEnd then -- we are in a cell at the at the same Y going RIGHT
+            put tHorizStart - (mHorizCellWidth/2) into tHorizStart
+            put tHorizEnd + (mHorizCellWidth/2) into tHorizEnd
+         end if
+         if tVertStart < tVertEnd and tHorizStart = tHorizEnd then --- we are in a cell at the at the same X going UP
+            put tVertStart + (mVertCellHeight/2) into tVertStart
+            put tVertEnd - (mVertCellHeight/2) into tVertEnd
+         else if tVertStart > tVertEnd and tHorizStart = tHorizEnd then -- we are in a cell at the at the same X going DOWN
+            put tVertStart - (mVertCellHeight/2) into tVertStart
+            put tVertEnd + (mVertCellHeight/2) into tVertEnd
+         end if
+         if tGridLine["StartIsSelected"] or tGridLine["EndIsSelected"] or tGridLine["IsSelected"] then
+            if tGridLine["StartIsSelected"] then
+               set the paint of this canvas to solid paint with color [0.5,0.125,0.125,1]
+               put rectangle path of rectangle [tHorizStart-(mHorizCellWidth*0.125),tVertStart-(mVertCellHeight*0.25),tHorizStart+(mHorizCellWidth*0.125),tVertStart+(mVertCellHeight*0.25)] into tPath
+               -- put circle path centered at point [tHorizStart,tVertStart] with radius mCircleSize into tPath
+               fill tPath on this canvas
+            end if
+            if tGridLine["EndIsSelected"] then
+               set the paint of this canvas to solid paint with color [0.5,0.125,0.125,1]
+               put circle path centered at point [tHorizEnd,tVertEnd] with radius mCircleSize into tPath
+               fill tPath on this canvas
+            end if
+            set the paint of this canvas to solid paint with color [0.5,0.125,0.125,0.5]
+         else --- the line is not selected at all
+            set the paint of this canvas to solid paint with color [0.5,0.5,0.125,0.5]
+         end if
+         set the stroke width of this canvas to mVertCellHeight * 0.95
+         put line path from point [tHorizStart,tVertStart] to point [tHorizEnd,tVertEnd] into tPath
+         stroke tPath on this canvas
+
+         set the paint of this canvas to solid paint with color [0.125,0.125,0.5,0.5]
+         put tGridLine["LineShapePath"] into tPath
+         fill tPath on this canvas
+      end repeat
+   end if
+end handler
+
+-- this handler is called when a card containg the widget is opened
+public handler OnOpen()
+   OnGeometryChanged()
+   redraw all
+end handler
+
+variable mGridMouseLoc as optional List
+public handler setLocalGridCoordsFromLoc(in pPosition as Point, in pReverseX as Boolean,in pReverseY as Boolean) returns nothing
+   variable tRect as Rectangle
+   variable tRectList as List
+   variable tRectNum as Number
+   variable tHoriz as optional Number
+   variable tVert as optional Number
+   variable tRectArray as Array
+
+   if mGridMouseLoc is nothing then
+      put [mMinXValue,mMinYValue] into mGridMouseLoc
+   end if
+   put my bounds into tRect
+   if pReverseX then
+      repeat with tRectNum from mMaxXValue + 1 down to 1
+         put mHorizRectList[tRectNum] into tRectArray
+         put tRectArray["HorizRect"] into tRect
+         -- put mHorizRectList[tRectNum] into tRectArray
+         if pPosition is within tRect then
+            -- put tRectNum -1 into tHoriz
+            put (tRectArray["VertIndex"] * -1)+mMaxXValue - 1 into tVert
+            exit repeat
+         end if
+      end repeat
+   else
+      repeat with tRectNum from 1 up to mMaxXValue
+         put mHorizRectList[tRectNum] into tRectArray
+         put tRectArray["HorizRect"] into tRect
+         if pPosition is within tRect then
+            -- put tRectNum -1 into tHoriz
+            put tRectArray ["HorizIndex"] into tHoriz
+            exit repeat
+         end if
+      end repeat
+   end if
+   if tHoriz is not nothing then
+      put tHoriz into mGridMouseLoc[1]
+      if  mSelectionStartLocalLoc is the empty list then
+         put mGridMouseLoc[1] into mSelectionStartLocalLoc[1]
+       end if
+      -- if  mSelectionEndLocalLoc is the empty list then
+      --   put mGridMouseLoc[1] into mSelectionEndLocalLoc[1]
+      -- end if
+   end if
+
+   if pReverseY then
+      --repeat with tRectNum from 1 up to (the number of elements in mVertRectList)
+      repeat with tRectNum from (the number of elements in mVertRectList) down to 1
+         put mVertRectList[tRectNum] into tRectArray
+         put tRectArray["VertRect"] into tRect
+         if pPosition is within tRect then
+            -- put mMaxYValue + 1 - tRectNum -1 into tVert
+            -- put tVertRect ["VertIndex"] into tVert
+            put (tRectArray["VertIndex"] * -1)+mMaxYValue - 1 into tVert
+            -- put ((tNum * -1 ) + mMaxYValue) into tVertRectArray["VertIndex"]
+
+            -- put tRectNum into tVert
+            exit repeat
+         end if
+      end repeat
+   else
+      repeat with tRectNum from 1 up to (the number of elements in mVertRectList)
+         put mVertRectList[tRectNum] into tRectArray
+         put tRectArray["VertRect"] into tRect
+         if pPosition is within tRect then
+            -- put mMaxYValue + 1 - tRectNum -1 into tVert
+            put tRectArray ["VertIndex"] into tVert
+            -- put tRectNum into tVert
+            -- put tRectNum -1 into tVert
+            exit repeat
+         end if
+      end repeat
+   end if
+   if tVert is not nothing then
+      put tVert into mGridMouseLoc[2]
+      if  mSelectionStartLocalLoc is the empty list then
+         put mGridMouseLoc[2] into mSelectionStartLocalLoc[2]
+      end if
+      -- if  mSelectionEndLocalLoc is the empty list then
+      --   put mGridMouseLoc[2] into mSelectionEndLocalLoc[2]
+      -- end if
+   end if
+end handler
+
+public handler getRectListSplitHorz(in pRect, in pDiv as Integer, in pReverseOrder as Boolean) returns List
+   variable tWidth as Integer
+   variable tHeight as Integer
+   variable tLeft as Integer
+   variable tTop as Integer
+   variable tRect as Rectangle
+   variable tRectList as List
+   variable tCounter as Integer
+   if pDiv < 1 then
+      put 1 into pDiv
+   end if
+   put the top of pRect into tTop
+   put the left of pRect into tLeft
+   put the bottom of pRect into tHeight
+   put the right of pRect into tWidth
+   put tWidth/pDiv into mHorizCellWidth
+   put rectangle [tLeft,tTop,mHorizCellWidth,tHeight] into tRect
+   push tRect onto tRectList
+   if pReverseOrder is true then
+      repeat with tCounter from 1 up to pDiv
+         put rectangle [tLeft+(mHorizCellWidth*tCounter),tTop,(mHorizCellWidth*tCounter)+mHorizCellWidth,tHeight] into tRect
+         push tRect onto back of tRectList
+      end repeat
+   else
+      repeat with tCounter from 1 up to pDiv
+         put rectangle [tLeft+(mHorizCellWidth*tCounter),tTop,(mHorizCellWidth*tCounter)+mHorizCellWidth,tHeight] into tRect
+         push tRect onto tRectList
+      end repeat
+   end if
+   return tRectList
+end handler
+
+public handler getRectListSplitVert(in pRect, in pDiv as Integer,in pReverseOrder as Boolean) returns List
+   variable tWidth as Real
+   variable tHeight as Real
+   variable tLeft as Real
+   variable tTop as Real
+   variable tRect
+   variable tRectList as List
+   variable tRevRecList as List
+   put the empty list into tRevRecList
+   variable tNum as Number
+
+   -- variable mVertCellHeight as Integer
+   variable tCounter as Integer
+   if pDiv < 1 then
+      put 1 into pDiv
+   end if
+   put the top of pRect into tTop
+   put the left of pRect into tLeft
+   put the bottom of pRect into tHeight
+   put the right of pRect into tWidth
+   put tHeight / pDiv into mVertCellHeight
+
+   if pReverseOrder is true then
+      repeat with tCounter from pDiv-1 down to 1
+         put rectangle [tLeft,tTop+(mVertCellHeight * tCounter),tWidth,(tCounter * mVertCellHeight)+mVertCellHeight] into tRect
+         push tRect onto back of tRectList
+      end repeat
+      put rectangle [tLeft,tTop,tWidth,mVertCellHeight] into tRect -- 0 rect at top
+      push tRect onto back of tRectList -- push 0,0 rect
+      put (the number of elements in tRectList) into tNum
+      -- log ["VertRects Generated",tNum]
+      repeat with tNum from (the number of elements in tRectList) down to 1
+      -- repeat with tNum from 1 up to pDiv
+      -- repeat with tNum from (the number of elements in tRectList) down to 1
+          --log [ tNum,mVertRectList[tNum]]
+         -- push tRectList[tNum] onto front of tRevRecList
+        push tRectList[tNum] onto back of tRevRecList
+      end repeat
+
+      return tRevRecList
+   else
+      put rectangle [tLeft,tTop,tWidth,mVertCellHeight] into tRect -- 0 rect at top
+      push tRect onto tRectList -- push 0,0 rect
+      repeat with tCounter from 1 up to pDiv-1
+         put rectangle [tLeft,tTop+(mVertCellHeight * tCounter),tWidth,(tCounter * mVertCellHeight)+mVertCellHeight] into tRect
+         push tRect onto tRectList
+      end repeat
+      return tRectList
+   end if
+end handler
+
+
+variable mHorizCellWidth as Number
+variable mVertCellHeight as Number
+variable mHorizRectList as List
+variable mVertRectList as List
+
+public handler buildGridRectLists()
+   variable tNum as Number
+   variable tCounter as Number
+   variable tElement
+
+   variable tArray as Array
+   variable tList as List
+   variable tPath as Path
+   variable tRect as Rectangle
+
+   variable tHalfStrokeOffset as Number
+   variable tMyWidthMinusStroke as Number
+   variable tMyHeightMinusStroke as Number
+
+   variable tKeysList as List
+   variable tKey as Array
+   variable tKeyPath as Path
+   variable tKeyRect as Rectangle
+   variable tKeySpacing as Number
+
+   variable tHorizSection as Array
+   variable tHorizSectionWidth as Number
+   variable tHorizSectionIteration as Number
+   variable tHorizSectionShift as Number
+
+   variable tVertSection as Array
+   variable tVertSectionWidth as Number
+   variable tVertSectionIteration as Number
+   variable tVertSectionShift as Number
+
+   variable tRectList as List
+   variable tRectArray as Array
+   variable tRectNumber as Number
+   variable tRectRectangle as Rectangle
+
+   put the empty list into mVertRectList
+   put the empty list into mHorizRectList
+   ---------------------------------------------------------------------------------------------------------------------------- BUILD HORIZONTAL X (tall) RECTS LIST
+   put the empty list into tRectList
+   -- put getRectListSplitHorz(my bounds,mMaxXValue+1,false) into mHorizRectList -- +1 is for the Zero position
+   put getRectListSplitHorz(my bounds,mMaxXValue,false) into tList-- +1 is for the Zero position
+   put (the number of elements in tList) into tCounter
+   repeat with tNum from 1 up to tCounter
+      put (tNum -1) into tRectArray["HorizIndex"]
+      put tList[tNum] into tRectArray["HorizRect"]
+      push tRectArray onto tRectList
+      -- push tVertRectArray onto front of tVertRectList
+   end repeat
+   put tRectList into mHorizRectList
+   ---------------------------------------------------------------------------------------------------------------------------- BUILD VERTICAL Y (wide) RECTS LIST
+   put the empty list into tRectList
+   -- put getRectListSplitVert(my bounds,mMaxYValue,true) into tList -- +1 is for the Zero position
+   put getRectListSplitVert(my bounds,mMaxYValue,false) into tList -- +1 is for the Zero position
+   ---- BUILD VERT RECT LIST
+   put (the number of elements in tList) into tCounter
+   -- repeat for each element tElement in tList
+   --repeat with tNum from 1 up to tCounter
+   repeat with tNum from tCounter down to 1
+      put ((tNum * -1 ) + mMaxYValue) into tRectArray["VertIndex"]
+      put tList[tNum] into tRectArray["VertRect"]
+      -- log [tNum,mHorizRectList[tNum]]
+      -- log [tRectArray["VertIndex"],tRectArray["VertRect"]]
+      push tRectArray onto back of tRectList
+      -- push tVertRectArray onto front of tVertRectList
+   end repeat
+   put tRectList into mVertRectList
+
+   put mHorizRectList[1] into tElement
+   put the right of (tElement["HorizRect"]) - the left of (tElement["HorizRect"]) into mHorizCellWidth
+   put mVertRectList[1] into tElement
+   put the bottom of (tElement["VertRect"]) - the top of (tElement["VertRect"]) into mVertCellHeight
+
+   -- log mVertRectList
+   -- log [mVertRectList[1],mVertRectList[mMaxYValue]]
+   --repeat with tCounter from 1 up to mMaxYValue
+   --log ["Element",mVertRectList[tCounter]
+    --end repeat
+   --- sort mVertRectList
+end handler
+
+--- Monte's point-within-path handler:
+public handler hitTestPath(in pPoint as Point, in pPath as Path, in pStrokeWidth as Number, in pWithin as Boolean) returns Boolean
+	-- set pWithin true and pStrokeWidth to 0 if you want to hit-test the filled path
+	-- set pWithin false and pStrokeWidth != 0 if you want hit-test the stroked path (i.e. just the outline)
+	-- set pWithin true and pStrokeWidth != 0 if you want to hit-test the stroked and filled path.
+	------------------------------------------------------------------------------------------------------------------------------
+	-- create a 1 x 1 canvas
+	variable tCanvas as Canvas
+	put a new canvas with size [1,1] into tCanvas
+	-- ensure we either get pixels drawn with our color or not drawn
+	set the antialias of tCanvas to false
+	-- translate the path by the point
+	translate pPath by [-(the x of pPoint), -(the y of pPoint)]
+	-- draw the path to the canvas
+	set the paint of tCanvas to solid paint with color [0.0, 0.0, 0.0, 1.0]
+	if pStrokeWidth is 0 and not pWithin then
+		put 1 into pStrokeWidth
+	end if
+	if pWithin then
+		fill pPath on tCanvas
+	end if
+	if pStrokeWidth > 0 then
+		set the stroke width of tCanvas to pStrokeWidth
+		stroke pPath on tCanvas
+	end if
+	-- get the pixel data of the canvas
+	variable tData as Data
+	put the pixel data of tCanvas into tData
+	-- return whether pixel is opaque
+	return the first byte of tData is the byte with code 255
+end handler
+
+end widget
