@@ -16,6 +16,7 @@ import module community.livecode.paulmcclernan.xygrid
   handler getCircleColor() returns String
   handler setBorderColor(in pColor as String) returns nothing
   handler getBorderColor() returns String
+  handler rebuildGridLinePolygons() returns nothing
   handler getGridLines() returns optional any
   handler getSelectedGridLines() returns optional any
   handler setSelectedGridLines(in pParam as optional any) returns nothing
