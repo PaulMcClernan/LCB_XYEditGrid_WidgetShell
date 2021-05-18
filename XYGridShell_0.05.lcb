@@ -933,24 +933,21 @@ public handler OnMouseMove()
                      -- put false into tGridLine["EndIsSelected"]
                      -- log [tGridLine["Stop"],mSelectionRect]
                   end if
+                  -------- replaced, now in OnMouseDown -----------
                   -- [left,top,right,bottom]
-
-                  put rectangle [ the x of tGridLine["Start"], the y of tGridLine["Start"], the x of tGridLine["Stop"], (the y of tGridLine["Stop"]) + mVertCellHeight] into tRect
-                 if point [ (mGridMouseLoc[1] * mHorizCellWidth) + (mHorizCellWidth/2), (mGridMouseLoc[2] * mVertCellHeight) + (mVertCellHeight/2)] is within tRect then
-                    log "middle part of line clicked"
-                    put true into tGridLine["IsSelected"]
-                    put true into tGridLine["EndIsSelected"]
-                    put true into tGridLine["StartIsSelected"]
-                 else
-                     -- put false into tGridLine["IsSelected"]
-                  end if
+                  -- put rectangle [ the x of tGridLine["Start"], the y of tGridLine["Start"], the x of tGridLine["Stop"], (the y of tGridLine["Stop"]) + mVertCellHeight] into tRect
+                  --  if point [ (mGridMouseLoc[1] * mHorizCellWidth) + (mHorizCellWidth/2), (mGridMouseLoc[2] * mVertCellHeight) + (mVertCellHeight/2)] is within tRect then
+                  --  log "middle part of line clicked"
+                  --  put true into tGridLine["IsSelected"]
+                   -- put true into tGridLine["EndIsSelected"]
+                   --  put true into tGridLine["StartIsSelected"]
+                  -- else
+                  -- put false into tGridLine["IsSelected"]
+                  -- end if
+                  -------- replaced, now in OnMouseDown -----------
 
                   put tGridLine into element tNum of mGridLines
 
-                  -- put line path from point [tHorizStart,tVertStart] to point [tHorizEnd ,tVertEnd] into tPath
-                  -- set the paint of this canvas to solid paint with color [0.5,0.5,0.125,0.5]
-                  -- set the stroke width of this canvas to (mVertCellHeight *0.75)
-                  -- stroke tPath on this canvas
                end repeat
             end if
          end if
