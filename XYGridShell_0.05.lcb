@@ -150,6 +150,7 @@ private handler setGridLines(pGridLines as String) returns nothing
    variable tGridLinesList as List
    variable tGridLine as optional any
    variable tOctaveIteration as Number
+   replace "\n" with " " in pGridLines -- consider newline to be the same as a space
    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
    -- put the empty list into mGridLines -- Clears all previous Lines in the entire grid
    put the empty array into tGridLineArray["Start"]
@@ -600,7 +601,8 @@ public handler OnSave(out rProperties as Array)
    put mMinYValue into rProperties["minYValue"]
    put mMaxXValue into rProperties["maxXValue"]
    put mMaxYValue into rProperties["maxYValue"]
-   put mGridLines into rProperties["gridLines"]
+   -- put mGridLines into rProperties["gridLines"]
+   put getGridLines() into rProperties["gridLines"]
    put colorToString(mStrokesColor, false) into rProperties["strokesColor"]
    put colorToString(mCircleColor, false) into rProperties["circleColor"]
    put mCircleSize into rProperties["circleSize"]
@@ -634,7 +636,8 @@ public handler OnLoad(in pProperties as Array)
       put pProperties["circleSize"] into mCircleSize
    end if
    if "gridLines" is in tTempList then
-      put pProperties["gridLines"] into mGridLines
+      setGridLines(pProperties["gridLines"])
+   --   put pProperties["gridLines"] into mGridLines
    end if
    put pProperties["borderWidth"] into mBorderWidth
    put stringToColor(pProperties["strokesColor"]) into mStrokesColor
