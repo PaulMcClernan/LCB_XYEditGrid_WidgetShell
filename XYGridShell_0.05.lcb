@@ -359,6 +359,7 @@ public handler getSelectedGridLines() returns optional any
             & the x of tGridLine["Stop"] formatted as string &","& the y of tGridLine["Stop"] formatted as string & "\n" after tReturnStr
       end if
    end repeat
+   -- sort tReturnStr numeric
    return tReturnStr
 end handler
 public handler setSelectedGridLines(in pParam as optional any) returns nothing
