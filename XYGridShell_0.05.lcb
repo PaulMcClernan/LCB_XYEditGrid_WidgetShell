@@ -1128,7 +1128,7 @@ public handler OnPaint()
          fill text (tElement["VertIndex"] formatted as string) at left of tElement["VertRect"] on this canvas
       end if
    end repeat
-   ------------------------------------------------------------------ Draw Cross Hair:
+   ------------------------------------------------------------------ Draw Quadrant Dividers:
    -- set the stroke width of this canvas to mBorderWidth * 3
    -- set the paint of this canvas to solid paint with mStrokesColor
    -- put line path from point [my width / 2, 0] to point [my width / 2,my height] into tPath
@@ -1328,6 +1328,12 @@ public handler OnPaint()
             put tVertStart - (mVertCellHeight/2) into tVertStart
             put tVertEnd + (mVertCellHeight/2) into tVertEnd
          end if
+         --- Draw Line Base in Solid White
+         set the paint of this canvas to solid paint with color [1,1,1,1]
+         set the stroke width of this canvas to mVertCellHeight * 0.95
+         put line path from point [tHorizStart,tVertStart] to point [tHorizEnd,tVertEnd] into tPath
+         stroke tPath on this canvas
+
          if tGridLine["StartIsSelected"] or tGridLine["EndIsSelected"] or tGridLine["IsSelected"] then
             if tGridLine["StartIsSelected"] then
                set the paint of this canvas to solid paint with color [0.5,0.125,0.125,1]
@@ -1344,7 +1350,8 @@ public handler OnPaint()
          else --- the line is not selected at all
             set the paint of this canvas to solid paint with color [0.5,0.5,0.125,0.5]
          end if
-         set the stroke width of this canvas to mVertCellHeight * 0.95
+
+         set the stroke width of this canvas to mVertCellHeight * 0.90
          put line path from point [tHorizStart,tVertStart] to point [tHorizEnd,tVertEnd] into tPath
          stroke tPath on this canvas
          if mShowSelectZones then
