@@ -64,7 +64,7 @@ Name: maxValue
 Type: property
 
 */
-widget community.livecode.paulmcclernan.xygrid
+widget org.openxtalk.xygrid
 
 -- dependancy declarations
 use com.livecode.canvas
